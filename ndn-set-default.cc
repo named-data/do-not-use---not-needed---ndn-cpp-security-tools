@@ -17,8 +17,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/osx-privatekey-storage.h"
-#include "ndn.cxx/security/identity/basic-identity-storage.h"
 #include "ndn.cxx/security/identity/identity-manager.h"
 #include "ndn.cxx/helpers/der/der.h"
 #include "ndn.cxx/helpers/der/visitor/print-visitor.h"
@@ -36,21 +34,20 @@ int main(int argc, char** argv)
   bool setDefaultCert = false;
   string name;
 
-  po::options_description desc("General options");
+  po::options_description desc("General Usage\n  ndn-set-default [-h] [-I|K|C] name\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
-    ("default_id,I", "set default identity")
+    ("default_id,I", "set default identity of the system")
     ("default_key,K", "set default key of the identity")
     ("default_cert,C", "set default certificate of the key")
     ("name,n", po::value<string>(&name), "the name to set")
     ;
 
-  // po::positional_options_description p;
-  // p.add("name", -1);
-  
+  po::positional_options_description p;
+  p.add("name", 1);
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  // po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+
   po::notify(vm);
 
   if (vm.count("help")) 
@@ -68,28 +65,28 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  Ptr<security::BasicIdentityStorage> publicStorage = Ptr<security::BasicIdentityStorage>::Create();
+  security::IdentityManager identityManager;
 
   if (vm.count("default_id"))
     {
       Name idName(name);
-      publicStorage->setDefaultIdentity(idName);
+      identityManager.getPublicStorage()->setDefaultIdentity(idName);
       return 0;
     }
 
   if (vm.count("default_key"))
     {
       Name keyName(name);
-      publicStorage->setDefaultKeyNameForIdentity(keyName);
+      identityManager.getPublicStorage()->setDefaultKeyNameForIdentity(keyName);
       return 0;
     }
   
   if (vm.count("default_cert"))
     {
       Name certName(name);
-      Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*publicStorage->getCertificate(certName, false)));
+      Ptr<security::IdentityCertificate> identityCertificate = identityManager.getCertificate(certName);
       Name keyName = identityCertificate->getPublicKeyName();
-      publicStorage->setDefaultCertificateNameForKey (keyName, certName);
+      identityManager.getPublicStorage()->setDefaultCertificateNameForKey (keyName, certName);
       return 0;
     }
 }
