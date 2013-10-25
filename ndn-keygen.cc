@@ -29,22 +29,25 @@ namespace po = boost::program_options;
 int main(int argc, char** argv)	
 {
   string identityName;
-  bool kskFlag = false;
+  bool dskFlag = false;
   char keyType;
   int keySize;
   string outputFilename;
 
-  po::options_description desc("General options");
+  po::options_description desc("General Usage\n  ndn-keygen [-h] [-d] [-t type] [-s size] identity\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("identity_name,n", po::value<string>(&identityName), "identity name, for example, /ndn/ucla.edu/alice")
-    ("ksk,k", "create a Key-Signing-Key")
-    ("type,t", po::value<char>(&keyType)->default_value('r'), "key type, r for RSA key")
-    ("size,s", po::value<int>(&keySize)->default_value(2048), "specify key size")
+    ("dsk,d", "optional, if specified, a Data-Signing-Key will be created, otherwise create a Key-Signing-Key")
+    ("type,t", po::value<char>(&keyType)->default_value('r'), "optional, key type, r for RSA key (default)")
+    ("size,s", po::value<int>(&keySize)->default_value(2048), "optional, key size, 2048 (default)")
     ;
+
+  po::positional_options_description p;
+  p.add("identity_name", 1);
   
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
   po::notify(vm);
 
   if (vm.count("help")) 
@@ -60,10 +63,8 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  if (vm.count("ksk")) 
-    {
-      kskFlag =  true;
-    }
+  if (vm.count("dsk")) 
+      dskFlag =  true;
 
   security::IdentityManager identityManager;
 
@@ -74,7 +75,7 @@ int main(int argc, char** argv)
       case 'r':
         {
           try{
-            Name keyName = identityManager.generateRSAKeyPair(Name(identityName), kskFlag, keySize);
+            Name keyName = identityManager.generateRSAKeyPair(Name(identityName), !dskFlag, keySize);
 
             if(0 == keyName.size())
               {
