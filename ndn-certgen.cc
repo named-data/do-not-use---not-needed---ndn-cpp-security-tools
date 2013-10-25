@@ -158,31 +158,31 @@ int main(int argc, char** argv)
     }
 
   try{
-  security::CertificateSubDescrypt subDescryptName("2.5.4.41", sName);
-  Ptr<security::IdentityCertificate> certificate = Create<security::IdentityCertificate>();
-  certificate->setName(certName);
-  certificate->setNotBefore(notBefore);
-  certificate->setNotAfter(notAfter);
-  certificate->setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
-  certificate->addSubjectDescription(subDescryptName);
-  certificate->encode();
-  security::IdentityManager identityManager;
+    security::CertificateSubDescrypt subDescryptName("2.5.4.41", sName);
+    Ptr<security::IdentityCertificate> certificate = Create<security::IdentityCertificate>();
+    certificate->setName(certName);
+    certificate->setNotBefore(notBefore);
+    certificate->setNotAfter(notAfter);
+    certificate->setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
+    certificate->addSubjectDescription(subDescryptName);
+    certificate->encode();
+    security::IdentityManager identityManager;
 
 
-  Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+    Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
 
-  identityManager.signByCertificate(*certificate, signingCertificateName);
+    identityManager.signByCertificate(*certificate, signingCertificateName);
 
-  Ptr<Blob> dataBlob = certificate->encodeToWire();
+    Ptr<Blob> dataBlob = certificate->encodeToWire();
 
-  string encoded;
-  CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()), dataBlob->size(), 
-  			    true,
-  			    new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-  cout << encoded;
-  }catch(security::SecException &e)
-    {
-      cerr <<e.Msg() << endl;
-    }
+    string encoded;
+    CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()), dataBlob->size(), 
+                              true,
+                              new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
+    cout << encoded;
+  }catch(security::SecException &e){
+    cerr <<e.Msg() << endl;
+    return 1;
+  }
   return 0;
 }
