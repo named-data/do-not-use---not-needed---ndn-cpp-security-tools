@@ -71,14 +71,14 @@ int main(int argc, char** argv)
 
   if (vm.count("help")) 
     {
-      cout << desc << "\n";
+      cerr << desc << endl;
       return 1;
     }
 
   if (0 == vm.count("cert_file"))
     {
-      cout << "cert_file must be specified" << endl;
-      cout << desc << endl;
+      cerr << "cert_file must be specified" << endl;
+      cerr << desc << endl;
       return 1;
     }
   

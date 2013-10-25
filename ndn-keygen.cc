@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 
   if (vm.count("help")) 
     {
-      cout << desc << "\n";
+      cerr << desc << endl;
       return 1;
     }
 

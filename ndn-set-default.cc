@@ -18,9 +18,6 @@
 #include <cryptopp/base64.h>
 
 #include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/helpers/der/der.h"
-#include "ndn.cxx/helpers/der/visitor/print-visitor.h"
-#include "ndn.cxx/helpers/der/visitor/publickey-visitor.h"
 
 using namespace std;
 using namespace ndn;
@@ -29,15 +26,14 @@ namespace po = boost::program_options;
 int main(int argc, char** argv)	
 {
   string certFileName;
-  bool setDefaultId = false;
+  bool setDefaultId = true;
   bool setDefaultKey = false;
   bool setDefaultCert = false;
   string name;
 
-  po::options_description desc("General Usage\n  ndn-set-default [-h] [-I|K|C] name\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-set-default [-h] [-K|C] name\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
-    ("default_id,I", "set default identity of the system")
     ("default_key,K", "set default key of the identity")
     ("default_cert,C", "set default certificate of the key")
     ("name,n", po::value<string>(&name), "the name to set")
@@ -52,36 +48,37 @@ int main(int argc, char** argv)
 
   if (vm.count("help")) 
     {
-      cout << desc << "\n";
-      return 1;
-    }
-
-  int optCount = vm.count("default_id") + vm.count("default_key") + vm.count("default_cert");
-
-  if (1 != optCount)
-    {
-      cout << "one and only one of default_id/key/cert must be specified" << endl;
-      cout << desc << endl;
+      cerr << desc << endl;
       return 1;
     }
 
   security::IdentityManager identityManager;
 
-  if (vm.count("default_id"))
+  if (vm.count("default_key"))
+    {
+      setDefaultKey = true;
+      setDefaultId = false;
+    }
+  else if(vm.count("default_cert"))
+    {
+      setDefaultCert = true;
+      setDefaultId = false;
+    }
+
+  if (setDefaultId)
     {
       Name idName(name);
       identityManager.getPublicStorage()->setDefaultIdentity(idName);
       return 0;
     }
-
-  if (vm.count("default_key"))
+  if (setDefaultKey)
     {
       Name keyName(name);
       identityManager.getPublicStorage()->setDefaultKeyNameForIdentity(keyName);
       return 0;
     }
   
-  if (vm.count("default_cert"))
+  if (setDefaultCert)
     {
       Name certName(name);
       Ptr<security::IdentityCertificate> identityCertificate = identityManager.getCertificate(certName);
