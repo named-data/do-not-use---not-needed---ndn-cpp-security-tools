@@ -20,10 +20,11 @@ def configure(conf):
                                                  '-g3',
                                                  '-Wno-unused-private-field', # only clang supports
                                                  '-fcolor-diagnostics',       # only clang supports
-                                                 '-Qunused-arguments'         # only clang supports
+                                                 '-Qunused-arguments',        # only clang supports
+                                                 '-Wno-tautological-compare',    # suppress warnings from CryptoPP
                                                  ])
     else:
-        conf.add_supported_cxxflags (cxxflags = ['-O3', '-g'])
+        conf.add_supported_cxxflags (cxxflags = ['-O3', '-g', '-Wno-tautological-compare'])
 
     conf.check_cfg(package='libndn.cxx', args=['--cflags', '--libs'], uselib_store='ndn.cxx', mandatory=True)
 
