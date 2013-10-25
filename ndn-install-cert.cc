@@ -17,76 +17,32 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/osx-privatekey-storage.h"
-#include "ndn.cxx/security/identity/basic-identity-storage.h"
 #include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/helpers/der/der.h"
-#include "ndn.cxx/helpers/der/visitor/print-visitor.h"
-#include "ndn.cxx/helpers/der/visitor/publickey-visitor.h"
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-string 
-getOutputFileName(const string& certName)
-{     
-  string result = certName;
-  if('/' == *result.begin())
-    result.erase(result.begin());
-  if('/' == *(result.end()-1))
-    result.erase(result.end()-1);
-
-
-  int pos = result.find('/', 1);
-  while(string::npos != pos)
-    {
-      result[pos] = '-';
-      pos = result.find('/', pos + 1);
-    }
-
-  return result + ".cert";
-}
-
-Ptr<Blob> 
-getCertBlob(const string& fileName)
+Ptr<security::IdentityCertificate> 
+getCertificate(const string& fileName)
 {
-  ifstream ifs (fileName.c_str());
-  string str((istreambuf_iterator<char>(ifs)),
-              istreambuf_iterator<char>());
-  
-  string firstLine = "-----BEGIN NDN ID CERT-----\n";
-  string lastLine = "-----END NDN ID CERT-----";
+  istream* ifs;
+  if(fileName == string("-"))
+    ifs = &cin;
+  else
+    ifs = new ifstream(fileName.c_str());
 
-  int fPos = str.find(firstLine) + firstLine.size();
-  int lPos = str.rfind(lastLine);
+  string str((istreambuf_iterator<char>(*ifs)),
+             istreambuf_iterator<char>());
 
-  string certBits = str.substr(fPos, lPos-fPos);
-  
   string decoded;
-  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(certBits.c_str()), certBits.size(), true,
-			    new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-
-  return Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-}
-
-void
-printBlob(const Blob & blob, string indent, int offset)
-{
-  cout << indent;
-
-  int count = 0;
-  for(int i = offset; i < blob.size(); i++)
-    {
-      cout << " " << hex << setw(2) << setfill('0') << (int)(uint8_t)blob[i];
-      count++;
-      if(8 == count)
-	{
-	  count = 0;
-	  cout << "\n" << indent;
-	}
-    }
-  cout << endl;
+  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
+                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
+  Ptr<Data> data = Data::decodeFromWire(blob);
+  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  
+  return identityCertificate;
 }
 
 int main(int argc, char** argv)	
@@ -99,14 +55,15 @@ int main(int argc, char** argv)
   po::options_description desc("General options");
   desc.add_options()
     ("help,h", "produce help message")
-    ("cert_file,f", po::value<string>(&certFileName), "file name of the ceritificate")
+    ("cert_file,f", po::value<string>(&certFileName), "file name of the ceritificate, - for stdin")
     ("key_default,K", "set the certificate as the default certificate of the key")
     ("id_default,I", "set the certificate as the default certificate of the identity")
-    ("any,A", "add any certificate, NOT recommended!")
     ;
+  po::positional_options_description p;
+  p.add("cert_file", 1);
   
   po::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
   po::notify(vm);
 
   if (vm.count("help")) 
@@ -131,25 +88,10 @@ int main(int argc, char** argv)
     {
       setAsIdDefault = true;
     }
-
-  if (vm.count("any"))
-    {
-      any = true;
-    }
   
-  Ptr<Blob> certBlob = getCertBlob (certFileName);
+  Ptr<security::IdentityCertificate> cert = getCertificate(certFileName);
   
-  Ptr<ndn::Data> certData= Data::decodeFromWire (certBlob);
-  Ptr<security::IdentityCertificate> cert = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*certData));
-
-  cout << "get cert" << endl;
-  
-  Ptr<security::BasicIdentityStorage> publicStorage = Ptr<security::BasicIdentityStorage>::Create();
-    cout<<"1"<<endl;
-  Ptr<security::OSXPrivatekeyStorage> privateStorage = Ptr<security::OSXPrivatekeyStorage>::Create();
-    cout<<"2"<<endl;
-  security::IdentityManager identityManager(publicStorage, privateStorage);
-    cout<<"3"<<endl;
+  security::IdentityManager identityManager;
   if(setAsIdDefault)
     {
       identityManager.addCertificateAsIdentityDefault(cert);
@@ -160,15 +102,9 @@ int main(int argc, char** argv)
       identityManager.addCertificateAsDefault(cert);
       return 0;
     }
-  else if(any)
-    {
-      cerr << "here!" << endl;
-      publicStorage->addAnyCertificate(cert);
-      return 0;
-    }
   else
     { 
-      publicStorage->addCertificate(cert);
+      identityManager.addCertificate(cert);
       return 0;
     }
 }
