@@ -48,16 +48,19 @@ getCertificate(const string& fileName)
 int main(int argc, char** argv)	
 {
   string certFileName;
-  bool setAsKeyDefault = false;
-  bool setAsIdDefault = false;
+  bool systemDefault = true;
+  bool identityDefault = false;
+  bool keyDefault = false;
+  bool noDefault = false;
   bool any = false;
 
-  po::options_description desc("General options");
+  po::options_description desc("General Usage\n  ndn-install-cert [-h] [-I|K|N] cert_file\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("cert_file,f", po::value<string>(&certFileName), "file name of the ceritificate, - for stdin")
-    ("key_default,K", "set the certificate as the default certificate of the key")
-    ("id_default,I", "set the certificate as the default certificate of the identity")
+    ("identity_default,I", "optional, if specified, the certificate will be set as the default certificate of the identity")
+    ("key_default,K", "optional, if specified, the certificate will be set as the default certificate of the key")
+    ("no_default,N", "optional, if specified, the certificate will be simply installed")
     ;
   po::positional_options_description p;
   p.add("cert_file", 1);
@@ -79,25 +82,41 @@ int main(int argc, char** argv)
       return 1;
     }
   
-  if (vm.count("key_default"))
+  if (vm.count("identity_default"))
     {
-      setAsKeyDefault = true;
+      identityDefault = true;
+      systemDefault = false;
+    }
+  else if (vm.count("key_default"))
+    {
+      keyDefault = true;
+      systemDefault = false;
+    }
+  else if (vm.count("no_default"))
+    {
+      noDefault = true;
+      systemDefault = false;
     }
 
-  if (vm.count("id_default"))
-    {
-      setAsIdDefault = true;
-    }
   
   Ptr<security::IdentityCertificate> cert = getCertificate(certFileName);
   
   security::IdentityManager identityManager;
-  if(setAsIdDefault)
+
+  if(systemDefault)
+    {
+      identityManager.addCertificateAsIdentityDefault(cert);
+      Name keyName = cert->getPublicKeyName();
+      Name identity = keyName.getSubName(0, keyName.size()-1);
+      identityManager.getPublicStorage()->setDefaultIdentity(identity);
+      return 0;
+    }
+  else if(identityDefault)
     {
       identityManager.addCertificateAsIdentityDefault(cert);
       return 0;
     }
-  else if(setAsKeyDefault)
+  else if(keyDefault)
     {
       identityManager.addCertificateAsDefault(cert);
       return 0;

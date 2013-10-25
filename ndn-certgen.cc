@@ -56,19 +56,21 @@ int main(int argc, char** argv)
   string sName;
   string reqFile;
   string signId;
+  vector<string> subInfo;
 
-  po::options_description desc("General options");
+  po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject name] [-I subject Info] sign_id request\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("not_before,S", po::value<string>(&notBeforeStr), "certificate starting date, YYYYMMDDhhmmss")
     ("not_after,E", po::value<string>(&notAfterStr), "certificate ending date, YYYYMMDDhhmmss")
     ("subject_name,N", po::value<string>(&sName), "subject name")
+    ("subject_info,I", po::value<vector<string> >(&subInfo), "subject info, \"2.5.4.10 UCLA\"")
     ("request,r", po::value<string>(&reqFile), "request file name, - for std in")
     ("sign_id,s", po::value<string>(&signId), "signing Identity")
     ;
 
   po::positional_options_description p;
-  p.add("request", 1);
+  p.add("sign_id", 1).add("request", 1);
   
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
@@ -85,7 +87,26 @@ int main(int argc, char** argv)
       cerr << "sign_id must be specified!" << endl;
       return 1;
     }
-  
+
+  vector<security::CertificateSubDescrypt> otherSubDescrypt;
+  vector<string>::const_iterator it = subInfo.begin();
+  try{
+    for(; it != subInfo.end(); it++)
+      {        
+        int delimiter = it->find(' ');
+        if(delimiter == string::npos)
+          throw exception();
+        
+        string oid = it->substr(0, delimiter);
+        string value = it->substr(delimiter+1, string::npos);
+
+        otherSubDescrypt.push_back(security::CertificateSubDescrypt(oid, value));
+      }
+  }catch(exception &e){
+    cerr << "error in parsing subject info" << endl;
+    return 1;
+  }
+
   TimeInterval ti = time::NowUnixTimestamp();
   Time notBefore;
   Time notAfter;
@@ -165,6 +186,8 @@ int main(int argc, char** argv)
     certificate->setNotAfter(notAfter);
     certificate->setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
     certificate->addSubjectDescription(subDescryptName);
+    for(int i = 0; i < otherSubDescrypt.size(); i++)
+      certificate->addSubjectDescription(otherSubDescrypt[i]);
     certificate->encode();
     security::IdentityManager identityManager;
 
