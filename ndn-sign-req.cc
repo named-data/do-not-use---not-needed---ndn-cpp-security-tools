@@ -16,55 +16,14 @@
 #include <boost/program_options/parsers.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/osx-privatekey-storage.h"
-#include "ndn.cxx/security/identity/basic-identity-storage.h"
 #include "ndn.cxx/security/identity/identity-manager.h"
+#include "ndn.cxx/security/certificate/identity-certificate.h"
 #include "ndn.cxx/security/exception.h"
-#include "ndn.cxx/helpers/der/der.h"
-#include "ndn.cxx/helpers/der/visitor/print-visitor.h"
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-string 
-getOutputFileName(const string& identityName)
-{     
-  string result = identityName;
-  if('/' == *result.begin())
-    result.erase(result.begin());
-  if('/' == *(result.end()-1))
-    result.erase(result.end()-1);
-
-
-  int pos = result.find('/', 1);
-  while(string::npos != pos)
-    {
-      result[pos] = '-';
-      pos = result.find('/', pos + 1);
-    }
-
-  return result + ".pub";
-}
-
-void
-printBlob(const Blob & blob, string indent, int offset)
-{
-  cout << indent;
-
-  int count = 0;
-  for(int i = offset; i < blob.size(); i++)
-    {
-      cout << " " << hex << setw(2) << setfill('0') << (int)(uint8_t)blob[i];
-      count++;
-      if(8 == count)
-	{
-	  count = 0;
-	  cout << "\n" << indent;
-	}
-    }
-  cout << endl;
-}
 
 int main(int argc, char** argv)	
 {
@@ -82,7 +41,7 @@ int main(int argc, char** argv)
 
   if (vm.count("help")) 
     {
-      cout << desc << "\n";
+      cerr << desc << endl;
       return 1;
     }
 
@@ -93,32 +52,22 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  Ptr<security::BasicIdentityStorage> publicStorage = Ptr<security::BasicIdentityStorage>::Create();
-  Ptr<security::OSXPrivatekeyStorage> privateStorage = Ptr<security::OSXPrivatekeyStorage>::Create();
-
-  security::IdentityManager identityManager(publicStorage, privateStorage);
+  security::IdentityManager identityManager;
 
   try{
-    Ptr<security::Publickey> pubkey = identityManager.getPublickey(Name(keyName));
-    const Blob & keyBlob = pubkey->getKeyBlob();
+    Name tmpName(keyName);
+    Name certName = tmpName.getSubName(0, tmpName.size()-1);
+    certName.append("KEY").append(tmpName.get(-1)).append("ID-CERT").append("0");
+    Ptr<security::IdentityCertificate> certificate = identityManager.getCertificate(certName);
+    Ptr<Blob> certBlob = certificate->encodeToWire();
 
-    string outputFileName = getOutputFileName(keyName);
-    ofstream ofs(outputFileName.c_str());
-  
-    ofs << "-----BEGIN RSA PUBLIC KEY-----\n";
     string encoded;
-    CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(keyBlob.buf()), 
-                              keyBlob.size(), 
-                              true,
+    CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
                               new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-    ofs << encoded;
-    ofs << "-----END RSA PUBLIC KEY-----\n";
-    ofs.close();
-
-    return 0;
+    cout << encoded;
   }catch(security::SecException & e){
     cerr << e.Msg() << endl;
     return 1;
   }
-
+  return 0;
 }
