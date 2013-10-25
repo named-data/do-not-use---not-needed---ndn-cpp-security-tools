@@ -25,25 +25,6 @@ using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-string 
-getOutputFileName(const string& identityName)
-{     
-  string result = identityName;
-  if('/' == *result.begin())
-    result.erase(result.begin());
-  if('/' == *(result.end()-1))
-    result.erase(result.end()-1);
-
-
-  int pos = result.find('/', 1);
-  while(string::npos != pos)
-    {
-      result[pos] = '-';
-      pos = result.find('/', pos + 1);
-    }
-
-  return result + ".pub";
-}
 
 int main(int argc, char** argv)	
 {
@@ -51,6 +32,7 @@ int main(int argc, char** argv)
   bool kskFlag = false;
   char keyType;
   int keySize;
+  string outputFilename;
 
   po::options_description desc("General options");
   desc.add_options()
@@ -83,10 +65,7 @@ int main(int argc, char** argv)
       kskFlag =  true;
     }
 
-  Ptr<security::BasicIdentityStorage> publicStorage = Ptr<security::BasicIdentityStorage>::Create();
-  Ptr<security::OSXPrivatekeyStorage> privateStorage = Ptr<security::OSXPrivatekeyStorage>::Create();
-
-  security::IdentityManager identityManager(publicStorage, privateStorage);
+  security::IdentityManager identityManager;
 
   if (vm.count("type")) 
     {
@@ -101,24 +80,17 @@ int main(int argc, char** argv)
               {
                 return 1;
               }
-
-            Ptr<security::Publickey> pubkey = identityManager.getPublickey(keyName);
-            const Blob & keyBlob = pubkey->getKeyBlob();
             
-            string outputFileName = getOutputFileName(keyName.toUri());
-            ofstream ofs(outputFileName.c_str());
-
-            ofs << "-----BEGIN RSA PUBLIC KEY-----\n";
+            Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
+            identityManager.addCertificateAsIdentityDefault(idcert);
+            Ptr<Blob> certBlob = idcert->encodeToWire();
+            
             string encoded;
-            CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(keyBlob.buf()), 
-                                      keyBlob.size(), 
+            CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), 
+                                      certBlob->size(), 
                                       true,
                                       new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-            ofs << encoded;
-            ofs << "-----END RSA PUBLIC KEY-----\n";
-            
-            ofs.close();
-            
+            cout << encoded;            
             return 0;
           }catch(security::SecException & e){
             cerr << e.Msg() << endl;
