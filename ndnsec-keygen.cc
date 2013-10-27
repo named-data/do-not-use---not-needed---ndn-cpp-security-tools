@@ -86,7 +86,6 @@ int main(int argc, char** argv)
               }
             
             Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
-            identityManager.addCertificateAsIdentityDefault(idcert);
 
             if(!notDefault)
               identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));

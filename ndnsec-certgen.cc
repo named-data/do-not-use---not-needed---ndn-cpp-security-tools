@@ -205,8 +205,6 @@ int main(int argc, char** argv)
     }
 
   Name certName = keyName.getSubName(0, count).toUri();
-  ostringstream oss;
-  oss << ti.total_seconds();
   certName.append("KEY").append(keyName.getSubName(count, keyName.size()-count));
   certName.append("ID-CERT").appendVersion ();
 

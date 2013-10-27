@@ -66,11 +66,8 @@ int main(int argc, char** argv)
   try{
     if(isKeyName)
       {
-        Name tmpName(name);
-        Name certName = tmpName.getSubName(0, tmpName.size()-1);
-        certName.append("KEY").append(tmpName.get(-1)).append("ID-CERT").append("0");
-        Ptr<security::IdentityCertificate> certificate = identityManager.getCertificate(certName);
-        Ptr<Blob> certBlob = certificate->encodeToWire();
+        Ptr<security::IdentityCertificate> selfSignCert = identityManager.selfSign(name);
+        Ptr<Blob> certBlob = selfSignCert->encodeToWire();
 
         string encoded;
         CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
@@ -79,10 +76,9 @@ int main(int argc, char** argv)
       }
     else
       {
-        Name identity(name);
-        Name certName = identityManager.getDefaultCertificateNameByIdentity(identity);
-        Ptr<security::IdentityCertificate> certificate = identityManager.getCertificate(certName);
-        Ptr<Blob> certBlob = certificate->encodeToWire();
+        Name keyName = identityManager.getDefaultKeyNameForIdentity(name);
+        Ptr<security::IdentityCertificate> selfSignCert = identityManager.selfSign(keyName);
+        Ptr<Blob> certBlob = selfSignCert->encodeToWire();
 
         string encoded;
         CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
