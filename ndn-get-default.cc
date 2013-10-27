@@ -28,6 +28,7 @@ int main(int argc, char** argv)
   bool getDefaultId = true;
   bool getDefaultKey = false;
   bool getDefaultCert = false;
+  bool quiet = false;
   string idName;
   string keyName;
 
@@ -38,6 +39,7 @@ int main(int argc, char** argv)
     ("default_cert,C", "get default certificate")
     ("identity,i", po::value<string>(&idName), "target identity")
     ("key,k", po::value<string>(&keyName), "target key")
+    ("quiet,q", "don't output trailing newline")
     ;
 
   po::variables_map vm;
@@ -60,15 +62,22 @@ int main(int argc, char** argv)
       getDefaultKey = true;
       getDefaultId = false;
     }
+
+  if(vm.count("quiet"))
+    {
+      quiet = true;
+    }
   
   security::IdentityManager identityManager;
+  bool ok = false;
 
   if(vm.count("key"))
     {
       Name keyNdnName(keyName);
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForKey(keyNdnName) << endl;
+	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForKey(keyNdnName);
+          if (!quiet) cout << endl;
 	  return 0;
 	}
       return 1;
@@ -79,12 +88,14 @@ int main(int argc, char** argv)
 
       if(getDefaultKey)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName) << endl;
+	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName);
+          if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName) << endl;
+	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName);
+          if (!quiet) cout << endl;
 	  return 0;
 	}
       return 1;
@@ -94,18 +105,23 @@ int main(int argc, char** argv)
       Name idNdnName = identityManager.getDefaultIdentity();
       if(getDefaultId)
 	{
-	  cout << idNdnName << endl;
+	  cout << idNdnName;
+          if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultKey)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName) << endl;
+	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName);
+          if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName) << endl;
+	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName);
+          if (!quiet) cout << endl;
 	  return 0;
 	}
     }
+
+
 }
