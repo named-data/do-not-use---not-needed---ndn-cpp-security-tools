@@ -84,10 +84,19 @@ int main(int argc, char** argv)
   p.add("certificate", 1);
   
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
-  po::notify(vm);
-
-  if (vm.count("help")) 
+  try
+    {
+      po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+      po::notify(vm);
+    }
+  catch( const std::exception& e)
+    {
+      std::cerr << e.what() << std::endl;
+      std::cout << desc << std::endl;
+      return 1;
+    }
+  
+  if (vm.count("help") || vm.count("certificate")==0) 
     {
       cerr << desc << endl;
       return 1;
@@ -95,8 +104,15 @@ int main(int argc, char** argv)
   if (vm.count("data"))
     isDataPacket = true;
 
-  Ptr<security::IdentityCertificate> certificate = getCertificate(certString);
-  bool res = verifySignature(certificate, isDataPacket);
-  
-  return (res ? 0 : 1);
+  try
+    {
+      Ptr<security::IdentityCertificate> certificate = getCertificate(certString);
+      bool res = verifySignature(certificate, isDataPacket);
+      return (res ? 0 : 1);
+    }
+  catch(...)
+    {
+      std::cerr << "ERROR: invalid input or certificate" << std::endl;
+      return 1;
+    }
 }
