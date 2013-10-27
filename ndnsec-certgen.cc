@@ -63,7 +63,7 @@ int main(int argc, char** argv)
   string subInfo;
   bool nack = false;
 
-  po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject name] [-I subject Info] sign_id request\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject-name] [-I subject-info] sign-id request\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("not-before,S", po::value<string>(&notBeforeStr), "certificate starting date, YYYYMMDDhhmmss")

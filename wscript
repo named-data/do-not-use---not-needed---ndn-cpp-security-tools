@@ -30,7 +30,7 @@ def configure(conf):
 
     conf.check_cryptopp(path=conf.options.cryptopp_dir)
     
-    conf.check_boost(lib='system test iostreams filesystem thread date_time regex program_options')
+    conf.check_boost(lib='system iostreams date_time regex program_options')
     boost_version = conf.env.BOOST_VERSION.split('_')
     if int(boost_version[0]) < 1 or int(boost_version[1]) < 46:
         Logs.error ("Minumum required boost version is 1.46")
