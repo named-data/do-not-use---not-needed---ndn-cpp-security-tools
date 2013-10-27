@@ -75,39 +75,6 @@ int main(int argc, char** argv)
       std::copy(realSig->getSignatureBits().begin(), realSig->getSignatureBits().end(),
                 (ostreambuf_iterator<char>(cout)));
     }
-  else if (command == "nack") //argv[2] user key name argv[3] signer ID
-    {
-      // Content nack_pkt("", 0, Content::NACK);
-      // security::IdentityManager identityManager;
-        
-      // Data d;
-      // d.setContent(nack_pkt);
-      // string keyname = argv[2];
-      // keyname += "/refusal";
-      // d.setName(keyname);
-      // Name nackName = Name(keyname);
-      // TimeInterval ti = time::NowUnixTimestamp();
-      // ostringstream oss;
-      // oss << ti.total_seconds();
-      // nackName.append(oss.str());
-        
-      // Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(argv[3]));
-      // identityManager.signByCertificate (d, signingCertificateName);
-      // Content c = d.getContent();
-      // cout<<c.getType()<<endl;
-        
-      // Ptr<Blob> dataBlob = d.encodeToWire();
-      // string outputFileName = getOutputFileName(nackName.toUri());
-      // ofstream ofs(outputFileName.c_str());
-        
-      // string encoded;
-      // CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()),
-      //                           dataBlob->size(),
-      //                           true,
-      //                           new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-      // ofs << encoded;
-      // ofs.close();
-    }
 
   return 0;
 }

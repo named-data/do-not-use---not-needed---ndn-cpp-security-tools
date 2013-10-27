@@ -61,6 +61,7 @@ int main(int argc, char** argv)
   string reqFile;
   string signId;
   string subInfo;
+  bool nack = false;
 
   po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject name] [-I subject Info] sign_id request\nGeneral options");
   desc.add_options()
@@ -69,6 +70,7 @@ int main(int argc, char** argv)
     ("not-after,E", po::value<string>(&notAfterStr), "certificate ending date, YYYYMMDDhhmmss")
     ("subject-name,N", po::value<string>(&sName), "subject name")
     ("subject-info,I", po::value<string>(&subInfo), "subject info, pairs of OID and string description: \"2.5.4.10 'University of California, Los Angeles'\"")
+    ("nack", "Generate revocation certificate (NACK)")
     ("sign-id,s", po::value<string>(&signId), "signing Identity")
     ("request,r", po::value<string>(&reqFile), "request file name, - for stdin")
     ;
@@ -98,6 +100,11 @@ int main(int argc, char** argv)
     {
       cerr << "sign-id must be specified!" << endl;
       return 1;
+    }
+
+  if (vm.count("nack"))
+    {
+      nack = true;
     }
 
   vector<security::CertificateSubDescrypt> otherSubDescrypt;
@@ -187,7 +194,7 @@ int main(int argc, char** argv)
   int count = 0;
   for(; i != keyName.end() && j != signIdName.end(); i++, j++, count++)
     {
-      if(i->toUri() != j->toUri())
+      if(*i != *j)
         break;
     }
 
@@ -201,46 +208,67 @@ int main(int argc, char** argv)
   ostringstream oss;
   oss << ti.total_seconds();
   certName.append("KEY").append(keyName.getSubName(count, keyName.size()-count));
-  certName.append("ID-CERT").append(oss.str());
+  certName.append("ID-CERT").appendVersion ();
 
-  if (0 == vm.count("subject-name"))
+  Ptr<Blob> dataBlob;
+
+  if (!nack)
     {
-      cerr << "subject_name must be specified" << endl;
-      return 1;
+      if (0 == vm.count("subject-name"))
+        {
+          cerr << "subject_name must be specified" << endl;
+          return 1;
+        }
+
+      try
+        {
+          security::CertificateSubDescrypt subDescryptName("2.5.4.41", sName);
+          security::IdentityCertificate certificate;
+          certificate.setName(certName);
+          certificate.setNotBefore(notBefore);
+          certificate.setNotAfter(notAfter);
+          certificate.setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
+          certificate.addSubjectDescription(subDescryptName);
+          for(int i = 0; i < otherSubDescrypt.size(); i++)
+            certificate.addSubjectDescription(otherSubDescrypt[i]);
+          certificate.encode();
+
+          security::IdentityManager identityManager;
+          Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+
+          identityManager.signByCertificate(certificate, signingCertificateName);
+
+          dataBlob = certificate.encodeToWire();
+        }
+      catch(security::SecException &e)
+        {
+          cerr << e.Msg() << endl;
+          return 1;
+        }
+      catch(exception &e)
+        {
+          cerr << "ERROR: " << e.what() << endl;
+          return 1;
+        }
+    }
+  else
+    {
+      Data revocationCert;
+      revocationCert.setContent(Content("", 0, Content::NACK));
+      revocationCert.setName(certName);
+
+      security::IdentityManager identityManager;
+      Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+
+      identityManager.signByCertificate (revocationCert, signingCertificateName);
+      dataBlob = revocationCert.encodeToWire();
     }
 
-  try{
-    security::CertificateSubDescrypt subDescryptName("2.5.4.41", sName);
-    Ptr<security::IdentityCertificate> certificate = Create<security::IdentityCertificate>();
-    certificate->setName(certName);
-    certificate->setNotBefore(notBefore);
-    certificate->setNotAfter(notAfter);
-    certificate->setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
-    certificate->addSubjectDescription(subDescryptName);
-    for(int i = 0; i < otherSubDescrypt.size(); i++)
-      certificate->addSubjectDescription(otherSubDescrypt[i]);
-    certificate->encode();
-    security::IdentityManager identityManager;
+  string encoded;
+  CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()), dataBlob->size(),
+                            true,
+                            new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
+  cout << encoded;
 
-
-    Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
-
-    identityManager.signByCertificate(*certificate, signingCertificateName);
-
-    Ptr<Blob> dataBlob = certificate->encodeToWire();
-
-    string encoded;
-    CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()), dataBlob->size(),
-                              true,
-                              new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-    cout << encoded;
-  }catch(security::SecException &e){
-    cerr <<e.Msg() << endl;
-    return 1;
-  }
-  catch(exception &e){
-    cerr << "ERROR: " << e.what() << endl;
-    return 1;
-  }
   return 0;
 }
