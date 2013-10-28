@@ -72,7 +72,8 @@ int main(int argc, char** argv)
 
   security::IdentityManager identityManager;
 
-  if (vm.count("type")) 
+  // if (vm.count("type")) 
+  if (true)
     {
       switch(keyType)
       {
