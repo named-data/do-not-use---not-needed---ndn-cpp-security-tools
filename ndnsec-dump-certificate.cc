@@ -41,7 +41,7 @@ int main(int argc, char** argv)
   string repoPort = "7376";
   bool isDnsOut = false;
 
-  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-i|k] certName\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-d] [-r [-H repo-host] [-P repor-port] ] [-i|k] certName\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("pretty,p", "optional, if specified, display certificate in human readable format")
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     ("repo-host,H", po::value<string>(&repoHost)->default_value("localhost"), "optional, the repo host if repo-output is specified")
     ("repo-port,P", po::value<string>(&repoPort)->default_value("7376"), "optional, the repo port if repo-output is specified")
     ("dns-output,d", "optional, if specified, certificate is dumped (published) to DNS")
-    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF")
+    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF, stdout if -")
     ;
 
   po::positional_options_description p;
@@ -112,23 +112,34 @@ int main(int argc, char** argv)
   Ptr<security::IdentityCertificate> certificate;
 
   try{
-    if(isIdentityName)
+    if(name != string("-"))
       {
-        Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
-        certificate = identityManager.getCertificate(certName);
-      }
-    else if(isKeyName)
-      {
-	Name certName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(name);
-        certificate = identityManager.getCertificate(certName);
+        if(isIdentityName)
+          {
+            Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
+            certificate = identityManager.getCertificate(certName);
+          }
+        else if(isKeyName)
+          {
+            Name certName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(name);
+            certificate = identityManager.getCertificate(certName);
+          }
+        else
+          certificate = identityManager.getCertificate(name);
+    
+        if(NULL == certificate)
+          {
+            cerr << "No certificate found!" << endl;
+            return 1;
+          }
       }
     else
-	certificate = identityManager.getCertificate(name);
-    
-    if(NULL == certificate)
       {
-        cerr << "No certificate found!" << endl;
-        return 1;
+        string str((istreambuf_iterator<char>(cin)),
+                   istreambuf_iterator<char>());
+        Ptr<Blob> blob = Ptr<Blob>(new Blob(str.c_str(), str.size()));
+        Ptr<Data> data = Data::decodeFromWire(blob);
+        certificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
       }
 
     if(isPretty)
