@@ -16,6 +16,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/regex.hpp>
+#include <boost/exception/all.hpp>
 
 #include "ndn.cxx/security/identity/identity-manager.h"
 #include "ndn.cxx/security/exception.h"
@@ -86,9 +87,15 @@ int main(int argc, char** argv)
           std::copy(realSig->getSignatureBits().begin(), realSig->getSignatureBits().end(),
                     (ostreambuf_iterator<char>(cout)));
         }
+      catch (boost::exception &e)
+        {
+          std::cerr << "ERROR: " << boost::diagnostic_information (e) << std::endl;
+          return -1;
+        }
       catch(std::exception &e)
         {
           cerr << "ERROR: " << e.what() << endl;
+          return -1;
         }
     }
 

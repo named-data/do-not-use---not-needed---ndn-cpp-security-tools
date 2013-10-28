@@ -115,7 +115,8 @@ int main(int argc, char** argv)
                               new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
         cout << encoded;
       }
-  }catch(std::exception & e){
+  }
+  catch(std::exception & e){
     cerr << e.what() << endl;
     return 1;
   }
