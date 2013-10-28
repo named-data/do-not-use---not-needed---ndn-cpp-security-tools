@@ -89,7 +89,7 @@ int main(int argc, char** argv)
         Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
         certificate = identityManager.getCertificate(certName);
       }
-    if(isKeyName)
+    else if(isKeyName)
       {
 	Name certName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(name);
         certificate = identityManager.getCertificate(certName);
