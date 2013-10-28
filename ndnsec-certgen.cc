@@ -204,7 +204,7 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  Name certName = keyName.getSubName(0, count).toUri();
+  Name certName = keyName.getSubName(0, count);
   certName.append("KEY").append(keyName.getSubName(count, keyName.size()-count));
   certName.append("ID-CERT").appendVersion ();
 
