@@ -35,15 +35,23 @@ int main(int argc, char** argv)
   po::options_description desc("General options");
   desc.add_options()
     ("help,h", "produce this help message")
-    ("command", po::value<string>(&command)->required(), "command")
+    ("command", po::value<string>(&command), "command")
     ;
 
   po::positional_options_description p;
   p.add("command", 1);
   
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
-  po::notify(vm);
+  try
+    {
+      po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+      po::notify(vm);
+    }
+  catch(std::exception &e)
+    {
+      cerr << "ERROR: " << e.what() << endl;
+      return -1;
+    }
     
   if (vm.count("help"))
     {
@@ -62,18 +70,26 @@ int main(int argc, char** argv)
     {
       security::IdentityManager identityManager;
 
-      Blob dataToSign((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
-      Ptr<Signature> signature = identityManager.signByCertificate(dataToSign, identityManager.getDefaultCertificateName());
-      Ptr<signature::Sha256WithRsa> realSig = DynamicCast<signature::Sha256WithRsa> (signature);
-
-      if (!realSig)
+      try
         {
-          cerr << "Error signing with default key" << endl;
-          return -1;
-        }
 
-      std::copy(realSig->getSignatureBits().begin(), realSig->getSignatureBits().end(),
-                (ostreambuf_iterator<char>(cout)));
+          Blob dataToSign((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
+          Ptr<Signature> signature = identityManager.signByCertificate(dataToSign, identityManager.getDefaultCertificateName());
+          Ptr<signature::Sha256WithRsa> realSig = DynamicCast<signature::Sha256WithRsa> (signature);
+
+          if (!realSig)
+            {
+              cerr << "Error signing with default key" << endl;
+              return -1;
+            }
+
+          std::copy(realSig->getSignatureBits().begin(), realSig->getSignatureBits().end(),
+                    (ostreambuf_iterator<char>(cout)));
+        }
+      catch(std::exception &e)
+        {
+          cerr << "ERROR: " << e.what() << endl;
+        }
     }
 
   return 0;

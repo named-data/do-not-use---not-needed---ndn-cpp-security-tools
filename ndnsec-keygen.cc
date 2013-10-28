@@ -77,32 +77,35 @@ int main(int argc, char** argv)
       {
       case 'r':
         {
-          try{
-            Name keyName = identityManager.generateRSAKeyPair(Name(identityName), !dskFlag, keySize);            
+          try
+            {
+              Name keyName = identityManager.generateRSAKeyPair(Name(identityName), !dskFlag, keySize);            
 
-            if(0 == keyName.size())
-              {
-                return 1;
-              }
+              if(0 == keyName.size())
+                {
+                  return 1;
+                }
             
-            Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
+              Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
 
-            if(!notDefault)
-              identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));
+              if(!notDefault)
+                identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));
 
-            Ptr<Blob> certBlob = idcert->encodeToWire();
+              Ptr<Blob> certBlob = idcert->encodeToWire();
             
-            string encoded;
-            CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), 
-                                      certBlob->size(), 
-                                      true,
-                                      new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-            cout << encoded;            
-            return 0;
-          }catch(security::SecException & e){
-            cerr << e.Msg() << endl;
-            return 1;
-          }
+              string encoded;
+              CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), 
+                                        certBlob->size(), 
+                                        true,
+                                        new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
+              cout << encoded;            
+              return 0;
+            }
+          catch(std::exception &e)
+            {
+              cerr << "ERROR: " << e.what() << endl;
+              return 1;
+            }
         }
       default:
         cerr << "Unrecongized key type" << "\n";

@@ -85,9 +85,11 @@ int main(int argc, char** argv)
                               new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
         cout << encoded;     
       }
-  }catch(security::SecException & e){
-    cerr << e.Msg() << endl;
-    return 1;
   }
+  catch(std::exception & e)
+    {
+      cerr << "ERROR: " << e.what() << endl;
+      return 1;
+    }
   return 0;
 }

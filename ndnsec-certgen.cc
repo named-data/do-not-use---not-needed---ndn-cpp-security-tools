@@ -238,11 +238,6 @@ int main(int argc, char** argv)
 
           dataBlob = certificate.encodeToWire();
         }
-      catch(security::SecException &e)
-        {
-          cerr << e.Msg() << endl;
-          return 1;
-        }
       catch(exception &e)
         {
           cerr << "ERROR: " << e.what() << endl;
