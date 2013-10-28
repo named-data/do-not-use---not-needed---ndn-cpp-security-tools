@@ -31,14 +31,17 @@ int main(int argc, char** argv)
 {
   string name;
   bool isKeyName = false;
+  bool isIdentityName = false;
+  bool isCertName = true;
   bool isPretty = false;
 
-  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-k] name\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-i|k] certName\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("pretty,p", "optional, if specified, display certificate in human readable format")
-    ("key,k", "optional, if specified, name is keyName (e.g. /ndn/ucla.edu/alice/KSK-123456789), otherwise identity name")
-    ("name,n", po::value<string>(&name), "name, for example, /ndn/ucla.edu/alice")
+    ("identity,i", "optional, if specified, name is identity name (e.g. /ndn/edu/ucla/alice), otherwise certificate name")
+    ("key,k", "optional, if specified, name is key name (e.g. /ndn/edu/ucla/alice/KSK-123456789), otherwise certificate name")
+    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF")
     ;
 
   po::positional_options_description p;
@@ -62,7 +65,17 @@ int main(int argc, char** argv)
     }
   
   if (vm.count("key"))
-    isKeyName = true;
+    {
+      isCertName = false;
+      isKeyName = true;
+    }
+  else if (vm.count("identity"))
+    {
+      isCertName = false;
+      isIdentityName = true;
+    }
+    
+    
   if (vm.count("pretty"))
     isPretty = true;
     
@@ -71,16 +84,18 @@ int main(int argc, char** argv)
   Ptr<security::IdentityCertificate> certificate;
 
   try{
+    if(isIdentityName)
+      {
+        Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
+        certificate = identityManager.getCertificate(certName);
+      }
     if(isKeyName)
       {
 	Name certName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(name);
         certificate = identityManager.getCertificate(certName);
       }
     else
-      {
-	Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
-        certificate = identityManager.getCertificate(certName);
-      }
+	certificate = identityManager.getCertificate(name);
     
     if(NULL == certificate)
       {
