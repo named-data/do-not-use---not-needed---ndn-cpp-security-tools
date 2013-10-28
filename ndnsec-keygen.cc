@@ -87,12 +87,15 @@ int main(int argc, char** argv)
                 {
                   return 1;
                 }
+
+              identityManager.getPublicStorage()->setDefaultKeyNameForIdentity(keyName);
             
               Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
 
               if(!notDefault)
-                identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));
-
+                {
+                  identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));
+                }
               Ptr<Blob> certBlob = idcert->encodeToWire();
             
               string encoded;
