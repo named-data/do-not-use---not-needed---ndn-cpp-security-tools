@@ -15,6 +15,7 @@
 #include <boost/program_options/variables_map.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/asio.hpp>
 #include <cryptopp/base64.h>
 
 #include "ndn.cxx/security/identity/identity-manager.h"
@@ -34,6 +35,11 @@ int main(int argc, char** argv)
   bool isIdentityName = false;
   bool isCertName = true;
   bool isPretty = false;
+  bool isStdOut = true;
+  bool isRepoOut = false;
+  string repoHost = "127.0.0.1";
+  string repoPort = "7376";
+  bool isDnsOut = false;
 
   po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-i|k] certName\nGeneral options");
   desc.add_options()
@@ -41,6 +47,10 @@ int main(int argc, char** argv)
     ("pretty,p", "optional, if specified, display certificate in human readable format")
     ("identity,i", "optional, if specified, name is identity name (e.g. /ndn/edu/ucla/alice), otherwise certificate name")
     ("key,k", "optional, if specified, name is key name (e.g. /ndn/edu/ucla/alice/KSK-123456789), otherwise certificate name")
+    ("repo-output,r", "optional, if specified, certificate is dumped (published) to repo")
+    ("repo-host,H", po::value<string>(&repoHost)->default_value("localhost"), "optional, the repo host if repo-output is specified")
+    ("repo-port,P", po::value<string>(&repoPort)->default_value("7376"), "optional, the repo port if repo-output is specified")
+    ("dns-output,d", "optional, if specified, certificate is dumped (published) to DNS")
     ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF")
     ;
 
@@ -78,7 +88,25 @@ int main(int argc, char** argv)
     
   if (vm.count("pretty"))
     isPretty = true;
-    
+
+  if (vm.count("repo-output"))
+    {
+      isRepoOut = true;
+      isStdOut = false;
+    }
+  else if(vm.count("dns-output"))
+    {
+      isDnsOut = true;
+      isStdOut = false;
+      cerr << "Error: DNS output is not supported yet!" << endl;
+      return 1;
+    }
+
+  if (isPretty && !isStdOut)
+    {
+      cerr << "Error: pretty option can only be specified when other output option is specified" << endl;
+      return 1;
+    }
 
   security::IdentityManager identityManager;
   Ptr<security::IdentityCertificate> certificate;
@@ -125,10 +153,31 @@ int main(int argc, char** argv)
     else
       {
         Ptr<Blob> certBlob = certificate->encodeToWire();
-        string encoded;
-        CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
-                              new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-        cout << encoded;
+        
+        if(isStdOut)
+          {
+            string encoded;
+            CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
+                                      new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
+            cout << encoded;
+            return 0;
+          }
+        if(isRepoOut)
+          {
+            using namespace boost::asio::ip;
+            tcp::iostream request_stream;
+            request_stream.expires_from_now(boost::posix_time::milliseconds(3000));
+            request_stream.connect(repoHost,repoPort);
+            if(!request_stream)
+              {
+                cerr << "fail to open the stream!" << endl;
+                return 1;
+              }
+            string encoded(certBlob->buf(), certBlob->size());
+            request_stream << encoded;
+            request_stream.flush();
+            return 0;
+          }
       }
   }
   catch(std::exception & e){
