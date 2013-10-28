@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     ("repo-host,H", po::value<string>(&repoHost)->default_value("localhost"), "optional, the repo host if repo-output is specified")
     ("repo-port,P", po::value<string>(&repoPort)->default_value("7376"), "optional, the repo port if repo-output is specified")
     ("dns-output,d", "optional, if specified, certificate is dumped (published) to DNS")
-    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF, stdout if -")
+    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF, stdin if -")
     ;
 
   po::positional_options_description p;
