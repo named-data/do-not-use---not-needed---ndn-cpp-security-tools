@@ -61,9 +61,10 @@ int main(int argc, char** argv)
   string reqFile;
   string signId;
   string subInfo;
+  bool isSelfSigned = false;
   bool nack = false;
 
-  po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject-name] [-I subject-info] sign-id request\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-certgen [-h] [-S date] [-E date] [-N subject-name] [-I subject-info] [-s sign-id] request\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("not-before,S", po::value<string>(&notBeforeStr), "certificate starting date, YYYYMMDDhhmmss")
@@ -71,12 +72,12 @@ int main(int argc, char** argv)
     ("subject-name,N", po::value<string>(&sName), "subject name")
     ("subject-info,I", po::value<string>(&subInfo), "subject info, pairs of OID and string description: \"2.5.4.10 'University of California, Los Angeles'\"")
     ("nack", "Generate revocation certificate (NACK)")
-    ("sign-id,s", po::value<string>(&signId), "signing Identity")
+    ("sign-id,s", po::value<string>(&signId), "signing Identity, self-signed if not specified")
     ("request,r", po::value<string>(&reqFile), "request file name, - for stdin")
     ;
 
   po::positional_options_description p;
-  p.add("sign-id", 1).add("request", 1);
+  p.add("request", 1);
 
   po::variables_map vm;
   try
@@ -97,9 +98,8 @@ int main(int argc, char** argv)
     }
 
   if (0 == vm.count("sign-id"))
-    {
-      cerr << "sign-id must be specified!" << endl;
-      return 1;
+    {     
+      isSelfSigned = true;
     }
 
   if (vm.count("nack"))
@@ -187,26 +187,37 @@ int main(int argc, char** argv)
     }
 
   Name keyName = selfSignedCertificate->getPublicKeyName();
-  Name signIdName(signId);
+  Name signIdName;
+  Name certName;
 
-  Name::const_iterator i = keyName.begin();
-  Name::const_iterator j = signIdName.begin();
-  int count = 0;
-  for(; i != keyName.end() && j != signIdName.end(); i++, j++, count++)
+  if(isSelfSigned)
     {
-      if(*i != *j)
-        break;
+      certName = keyName.getPrefix(keyName.size()-1);
+      certName.append("KEY").append(keyName.get(-1)).append("ID-CERT").appendVersion();
     }
-
-  if(j != signIdName.end() || i == keyName.end())
+  else
     {
-      cerr << "wrong signing identity!" << endl;
-      return 1;
-    }
+      signIdName = Name(signId);
+  
+      Name::const_iterator i = keyName.begin();
+      Name::const_iterator j = signIdName.begin();
+      int count = 0;
+      for(; i != keyName.end() && j != signIdName.end(); i++, j++, count++)
+        {
+          if(*i != *j)
+            break;
+        }
+      
+      if(j != signIdName.end() || i == keyName.end())
+        {
+          cerr << "wrong signing identity!" << endl;
+          return 1;
+        }
 
-  Name certName = keyName.getSubName(0, count);
-  certName.append("KEY").append(keyName.getSubName(count, keyName.size()-count));
-  certName.append("ID-CERT").appendVersion ();
+      certName = keyName.getSubName(0, count);
+      certName.append("KEY").append(keyName.getSubName(count, keyName.size()-count));
+      certName.append("ID-CERT").appendVersion ();
+    }
 
   Ptr<Blob> dataBlob;
 
@@ -232,10 +243,15 @@ int main(int argc, char** argv)
           certificate.encode();
 
           security::IdentityManager identityManager;
-          Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
 
-          identityManager.signByCertificate(certificate, signingCertificateName);
-
+          if(isSelfSigned)
+            identityManager.selfSign(certificate);
+          else
+            {
+              Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+              
+              identityManager.signByCertificate(certificate, signingCertificateName);
+            }
           dataBlob = certificate.encodeToWire();
         }
       catch(exception &e)
