@@ -27,6 +27,27 @@ using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
+Ptr<security::IdentityCertificate>
+getIdentityCertificate(const string& fileName)
+{
+  istream* ifs;
+  if(fileName == string("-"))
+    ifs = &cin;
+  else
+    ifs = new ifstream(fileName.c_str());
+
+  string str((istreambuf_iterator<char>(*ifs)),
+             istreambuf_iterator<char>());
+
+  string decoded;
+  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
+                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
+  Ptr<Data> data = Data::decodeFromWire(blob);
+  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+
+  return identityCertificate;
+}
 
 int main(int argc, char** argv)	
 {
@@ -34,6 +55,7 @@ int main(int argc, char** argv)
   bool isKeyName = false;
   bool isIdentityName = false;
   bool isCertName = true;
+  bool isFileName = false;
   bool isPretty = false;
   bool isStdOut = true;
   bool isRepoOut = false;
@@ -41,17 +63,18 @@ int main(int argc, char** argv)
   string repoPort = "7376";
   bool isDnsOut = false;
 
-  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-d] [-r [-H repo-host] [-P repor-port] ] [-i|k] certName\nGeneral options");
+  po::options_description desc("General Usage\n  ndn-dump-certificate [-h] [-p] [-d] [-r [-H repo-host] [-P repor-port] ] [-i|k|f] certName\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("pretty,p", "optional, if specified, display certificate in human readable format")
     ("identity,i", "optional, if specified, name is identity name (e.g. /ndn/edu/ucla/alice), otherwise certificate name")
     ("key,k", "optional, if specified, name is key name (e.g. /ndn/edu/ucla/alice/KSK-123456789), otherwise certificate name")
+    ("file,f", "optional, if specified, name is file name, - for stdin")
     ("repo-output,r", "optional, if specified, certificate is dumped (published) to repo")
     ("repo-host,H", po::value<string>(&repoHost)->default_value("localhost"), "optional, the repo host if repo-output is specified")
     ("repo-port,P", po::value<string>(&repoPort)->default_value("7376"), "optional, the repo port if repo-output is specified")
     ("dns-output,d", "optional, if specified, certificate is dumped (published) to DNS")
-    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF, stdin if -")
+    ("name,n", po::value<string>(&name), "certificate name, for example, /ndn/edu/ucla/KEY/cs/alice/ksk-1234567890/ID-CERT/%FD%FF%FF%FF%FF%FF%FF%FF")
     ;
 
   po::positional_options_description p;
@@ -84,7 +107,11 @@ int main(int argc, char** argv)
       isCertName = false;
       isIdentityName = true;
     }
-    
+  else if (vm.count("file"))
+    {
+      isCertName = false;
+      isFileName = true;
+    }    
     
   if (vm.count("pretty"))
     isPretty = true;
@@ -112,7 +139,7 @@ int main(int argc, char** argv)
   Ptr<security::IdentityCertificate> certificate;
 
   try{
-    if(name != string("-"))
+    if(isIdentityName || isKeyName || isCertName)
       {
         if(isIdentityName)
           {
@@ -126,7 +153,7 @@ int main(int argc, char** argv)
           }
         else
           certificate = identityManager.getCertificate(name);
-    
+ 
         if(NULL == certificate)
           {
             cerr << "No certificate found!" << endl;
@@ -135,11 +162,12 @@ int main(int argc, char** argv)
       }
     else
       {
-        string str((istreambuf_iterator<char>(cin)),
-                   istreambuf_iterator<char>());
-        Ptr<Blob> blob = Ptr<Blob>(new Blob(str.c_str(), str.size()));
-        Ptr<Data> data = Data::decodeFromWire(blob);
-        certificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+        certificate = getIdentityCertificate(name);
+        if(NULL == certificate)
+          {
+            cerr << "No certificate read!" << endl;
+            return 1;
+          }
       }
 
     if(isPretty)
