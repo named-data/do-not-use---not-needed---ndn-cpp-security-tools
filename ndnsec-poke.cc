@@ -40,20 +40,29 @@ onTimeout(Ptr<Closure> closure, Ptr<Interest> interest)
   cerr << "Timeout" << endl;
 }
 
+static string
+getData()
+{
+  string str((istreambuf_iterator<char>(cin)),
+             istreambuf_iterator<char>());
+  return str;  
+}
+
 int main(int argc, char** argv)	
 {
   string name;
   string data;
 
-  po::options_description desc("General Usage\n  ndnsec-test-publish [-h] name data\nGeneral options");
+  po::options_description desc("General Usage\n  ndnsec-poke [-h] name\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("name,n", po::value<string>(&name), "data name, /ndn/ucla.edu/alice/chat/01")
-    ("data,d", po::value<string>(&data), "data content, \"hello\"")
+    // ("data,d", po::value<string>(&data), "data content, \"hello\"")
     ;
 
   po::positional_options_description p;
-  p.add("name", 1).add("data", 1);
+  // p.add("name", 1).add("data", 1);
+  p.add("name", 1);
   
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
@@ -64,6 +73,8 @@ int main(int argc, char** argv)
       cerr << desc << endl;
       return 1;
     }
+
+  data = getData();
 
   try{
     using namespace ndn::security;
@@ -93,7 +104,12 @@ int main(int argc, char** argv)
     Name dataName(name);
     dataName.appendVersion();
 
-    wrapper.publishDataByIdentity(dataName, data, identity);
+    try{
+      wrapper.publishDataByIdentity(dataName, data, identity);
+    }catch(std::exception& e){
+      cerr << e.what() << endl;
+    }
+    
     wrapper.shutdown();
   }catch(exception& e){
     cerr << e.what() << endl;

@@ -46,25 +46,6 @@ I5VAyOC8nS8D8YOfBwt2yRDZPgt1E5PpyYUBiDYuq/zmJDL8xjxAlxrMzVOqD/uj\
 VCL+cnIEwyzAFAupQH5GoXUWGiee8oKWwH2vGHX7u6sWZsCp15NMSG3OC4jUIZOE\
 iVUF1QIBEQAA");
 
-//fake ndn ksk!
-// const string TrustAnchor("BIICqgOyEIVAaoHnQZIx5osAuY2fKte4HBSrxyam7MY6/kp+w47O1bGdd2KjeZKV\n\
-// zZzQd3EQorDC3KUPbB6ql30jYfspvo4OPSlIuDrkyROaoZ+MSKyzQYpB6CZcTjBa\n\
-// qcWYFOfwUlcWvkbd00X4bkc5PkcWpVdRrx+NCTiq9EXes//hOHpEJHMNsJUi45O+\n\
-// 6M4OE6/sNEqs/ryHn2w1vCqwPpG8xzcd0prQUdCH2MGE77F+H0XFDuWp8mrT37Uw\n\
-// DUy7Ltm+7nDTHSQy2J3Zk4Q+0tjxCzSw4owEpwOHr+afdkuE3v9aB2NRQBBDCEmL\n\
-// Ykz4sYX3XE8MVFqRn1HHWCkszjDg+F0UAADy+p1uZG4A+p1LRVkA+vVrc2stMTM4\n\
-// MjkzNDE5OAD6vUlELUNFUlQA+s39/////95rc7MAAAGiA+IChaK1eVvzlkg6BJAw\n\
-// qiOpxRoezQ0hAHOBbPRLeBllxMN7AAK6tQUm3mtztQAB4gHq8vqdbmRuAPqdS0VZ\n\
-// APr1a3NrLTEzODI5MzQxOTgA+r1JRC1DRVJUAAAAAAABmhblMIIBaDAiGA8yMDEz\n\
-// MTAyODAwMDAwMFoYDzIwMzMxMDI4MDAwMDAwWjAcMBoGA1UEKRMTL25kbi9rc2st\n\
-// MTM4MjkzNDE5ODCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAK2htIFF\n\
-// /PH+SJsGOA6jhpFT74xfLJlgZNJOnKzl27HI2gupE0mainWj/HqVzdGxD6jOOReI\n\
-// sul+eQyEyBYq4e35pLmdJGlux/+UPQ51DD8jg04GrUPewV7+iGm6usp/7xEGHbah\n\
-// H2Grv/bsGrt6aRA8cKmdIc+rehxZCVFtiwSEHTnOWzn3lfZR5xnjF9aGX+uGo1hA\n\
-// gMwu1ECxg4H3O4z1tbTzji5+WH0RDsPRlgzQX6wAQH8btlQyoFJfljEA3QaOtDaB\n\
-// OcfegIlClzutmgJnK9i5ZLz2Mjvx49dlCWAVKg65vOXMLC/33jD9F+V8urwsBlOb\n\
-// F7Wh5ayeo8NBKDsCAwEAAQAA");
-
 Ptr<security::IdentityCertificate> 
 getRoot()
 {
@@ -99,8 +80,13 @@ onVerified(Ptr<Data> data, Ptr<vector<Ptr<Data> > > dataList, Ptr<Wrapper> wrapp
   if(isCert)
     cerr << "verify cert " << data->getName().toUri() << endl;
   else
-    cerr << "verify data " << data->getName().toUri() << " with content: " << str << endl;
+    {
+      cerr << "verify data " << data->getName().toUri() << endl;
 
+      Ptr<Blob> blob = data->encodeToWire();
+      std::ostreambuf_iterator<char> out_it (std::cout);
+      std::copy ( blob->begin(), blob->end(), out_it);
+    }
   dataList->insert(dataList->begin(), data);
 
   Ptr<const signature::Sha256WithRsa> sha256sig = DynamicCast<const signature::Sha256WithRsa> (data->getSignature());    
@@ -134,7 +120,7 @@ int main(int argc, char** argv)
   string name;
   string data;
 
-  po::options_description desc("General Usage\n  ndnsec-test-fetch [-h] name\nGeneral options");
+  po::options_description desc("General Usage\n  ndnsec-peek [-h] name\nGeneral options");
   desc.add_options()
     ("help,h", "produce help message")
     ("name,n", po::value<string>(&name), "data name, /ndn/ucla.edu/alice/chat")
