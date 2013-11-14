@@ -35,6 +35,7 @@ def configure(conf):
     if int(boost_version[0]) < 1 or int(boost_version[1]) < 46:
         Logs.error ("Minumum required boost version is 1.46")
         return
+    conf.check(features='cxx cxxprogram', lib='pthread', uselib_store='PTHREAD')
 
 def build (bld):
     for app in bld.path.ant_glob (['*.cc']):
@@ -43,7 +44,7 @@ def build (bld):
             target = name,
             features = ['cxx'],
             source = [app],
-            use = 'ndn.cxx CRYPTOPP BOOST BOOST_PROGRAM_OPTIONS',
+            use = 'ndn.cxx CRYPTOPP BOOST BOOST_SYSTEM BOOST_PROGRAM_OPTIONS PTHREAD',
             includes = ".",
             )
 
