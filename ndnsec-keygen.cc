@@ -14,10 +14,11 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/exception.h"
+#include <cryptopp/base64.h>
+#include <cryptopp/files.h>
+
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
@@ -70,7 +71,8 @@ int main(int argc, char** argv)
   if (vm.count("not_default"))
     notDefault = true;
 
-  security::IdentityManager identityManager;
+  KeyChain keyChain;
+  IdentityManager &identityManager = keyChain.identities();
 
   // if (vm.count("type")) 
   if (true)
@@ -88,22 +90,19 @@ int main(int argc, char** argv)
                   return 1;
                 }
 
-              identityManager.getPublicStorage()->setDefaultKeyNameForIdentity(keyName);
+              identityManager.info().setDefaultKeyNameForIdentity(keyName);
             
-              Ptr<security::IdentityCertificate> idcert = identityManager.selfSign(keyName);
+              ptr_lib::shared_ptr<IdentityCertificate> idcert = identityManager.selfSign(keyName);
 
               if(!notDefault)
                 {
-                  identityManager.getPublicStorage()->setDefaultIdentity(Name(identityName));
+                  identityManager.info().setDefaultIdentity(Name(identityName));
                 }
-              Ptr<Blob> certBlob = idcert->encodeToWire();
-            
-              string encoded;
-              CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), 
-                                        certBlob->size(), 
+              
+              CryptoPP::StringSource ss(idcert->wireEncode().wire(), 
+                                        idcert->wireEncode().size(), 
                                         true,
-                                        new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-              cout << encoded;            
+                                        new CryptoPP::Base64Encoder(new CryptoPP::FileSink(cout), true, 64));
               return 0;
             }
           catch(std::exception &e)

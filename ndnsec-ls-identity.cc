@@ -17,7 +17,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
@@ -56,42 +56,42 @@ int main(int argc, char** argv)
       getKey = true;
       getId = false;
     }
-  
-  security::IdentityManager identityManager;
 
+  KeyChain keyChain;
+  IdentityManager &identityManager = keyChain.identities();
 
   if(getId)
     {
-      vector<Name> defaultList = identityManager.getPublicStorage()->getAllIdentities(true);
+      vector<Name> defaultList = identityManager.info().getAllIdentities(true);
       for(int i = 0; i < defaultList.size(); i++)
 	cout << "* " << defaultList[i] << endl;
-      vector<Name> otherList = identityManager.getPublicStorage()->getAllIdentities(false);
+      vector<Name> otherList = identityManager.info().getAllIdentities(false);
       for(int i = 0; i < otherList.size(); i++)
 	cout << "  " << otherList[i] << endl;
       return 0;
     }
   if(getKey)
     {
-      vector<Name> defaultIdList = identityManager.getPublicStorage()->getAllIdentities(true);
+      vector<Name> defaultIdList = identityManager.info().getAllIdentities(true);
       for(int i = 0; i < defaultIdList.size(); i++)
         {
           cout << "* " << defaultIdList[i] << endl;
-          vector<Name> defaultKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(defaultIdList[i], true);
+          vector<Name> defaultKeyList = identityManager.info().getAllKeyNamesOfIdentity(defaultIdList[i], true);
           for(int j = 0; j < defaultKeyList.size(); j++)
             cout << "  +->* " << defaultKeyList[j] << endl;
-          vector<Name> otherKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(defaultIdList[i], false);
+          vector<Name> otherKeyList = identityManager.info().getAllKeyNamesOfIdentity(defaultIdList[i], false);
           for(int j = 0; j < otherKeyList.size(); j++)
             cout << "  +->  " << otherKeyList[j] << endl;
           cout << endl;
         }
-      vector<Name> otherIdList = identityManager.getPublicStorage()->getAllIdentities(false);
+      vector<Name> otherIdList = identityManager.info().getAllIdentities(false);
       for(int i = 0; i < otherIdList.size(); i++)
         {
           cout << "  " << otherIdList[i] << endl;
-          vector<Name> defaultKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(otherIdList[i], true);
+          vector<Name> defaultKeyList = identityManager.info().getAllKeyNamesOfIdentity(otherIdList[i], true);
           for(int j = 0; j < defaultKeyList.size(); j++)
             cout << "  +->* " << defaultKeyList[j] << endl;
-          vector<Name> otherKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(otherIdList[i], false);
+          vector<Name> otherKeyList = identityManager.info().getAllKeyNamesOfIdentity(otherIdList[i], false);
           for(int j = 0; j < otherKeyList.size(); j++)
             cout << "  +->  " << otherKeyList[j] << endl;
           cout << endl;
@@ -100,58 +100,58 @@ int main(int argc, char** argv)
     }
   if(getCert)
     {
-      vector<Name> defaultIdList = identityManager.getPublicStorage()->getAllIdentities(true);
+      vector<Name> defaultIdList = identityManager.info().getAllIdentities(true);
       for(int i = 0; i < defaultIdList.size(); i++)
         {
           cout << "* " << defaultIdList[i] << endl;
-          vector<Name> defaultKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(defaultIdList[i], true);
+          vector<Name> defaultKeyList = identityManager.info().getAllKeyNamesOfIdentity(defaultIdList[i], true);
           for(int j = 0; j < defaultKeyList.size(); j++)
             {
               cout << "  +->* " << defaultKeyList[j] << endl;
-              vector<Name> defaultCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(defaultKeyList[j], true);
+              vector<Name> defaultCertList = identityManager.info().getAllCertificateNamesOfKey(defaultKeyList[j], true);
               for(int k = 0; k < defaultCertList.size(); k++)
                   cout << "       +->* " << defaultCertList[k] << endl;
-              vector<Name> otherCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(defaultKeyList[j], false);
+              vector<Name> otherCertList = identityManager.info().getAllCertificateNamesOfKey(defaultKeyList[j], false);
               for(int k = 0; k < otherCertList.size(); k++)
                   cout << "       +->  " << otherCertList[k] << endl;
             }
-          vector<Name> otherKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(defaultIdList[i], false);
+          vector<Name> otherKeyList = identityManager.info().getAllKeyNamesOfIdentity(defaultIdList[i], false);
           for(int j = 0; j < otherKeyList.size(); j++)
             {
               cout << "  +->  " << otherKeyList[j] << endl;
-              vector<Name> defaultCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(otherKeyList[j], true);
+              vector<Name> defaultCertList = identityManager.info().getAllCertificateNamesOfKey(otherKeyList[j], true);
               for(int k = 0; k < defaultCertList.size(); k++)
                   cout << "       +->* " << defaultCertList[k] << endl;
-              vector<Name> otherCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(otherKeyList[j], false);
+              vector<Name> otherCertList = identityManager.info().getAllCertificateNamesOfKey(otherKeyList[j], false);
               for(int k = 0; k < otherCertList.size(); k++)
                   cout << "       +->  " << otherCertList[k] << endl;
             }
 
           cout << endl;
         }
-      vector<Name> otherIdList = identityManager.getPublicStorage()->getAllIdentities(false);
+      vector<Name> otherIdList = identityManager.info().getAllIdentities(false);
       for(int i = 0; i < otherIdList.size(); i++)
         {
           cout << "  " << otherIdList[i] << endl;
-          vector<Name> defaultKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(otherIdList[i], true);
+          vector<Name> defaultKeyList = identityManager.info().getAllKeyNamesOfIdentity(otherIdList[i], true);
           for(int j = 0; j < defaultKeyList.size(); j++)
             {
               cout << "  +->* " << defaultKeyList[j] << endl;
-              vector<Name> defaultCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(defaultKeyList[j], true);
+              vector<Name> defaultCertList = identityManager.info().getAllCertificateNamesOfKey(defaultKeyList[j], true);
               for(int k = 0; k < defaultCertList.size(); k++)
                   cout << "       +->* " << defaultCertList[k] << endl;
-              vector<Name> otherCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(defaultKeyList[j], false);
+              vector<Name> otherCertList = identityManager.info().getAllCertificateNamesOfKey(defaultKeyList[j], false);
               for(int k = 0; k < otherCertList.size(); k++)
                   cout << "       +->  " << otherCertList[k] << endl;
             }
-          vector<Name> otherKeyList = identityManager.getPublicStorage()->getAllKeyNamesOfIdentity(otherIdList[i], false);
+          vector<Name> otherKeyList = identityManager.info().getAllKeyNamesOfIdentity(otherIdList[i], false);
           for(int j = 0; j < otherKeyList.size(); j++)
             {
               cout << "  +->  " << otherKeyList[j] << endl;
-              vector<Name> defaultCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(otherKeyList[j], true);
+              vector<Name> defaultCertList = identityManager.info().getAllCertificateNamesOfKey(otherKeyList[j], true);
               for(int k = 0; k < defaultCertList.size(); k++)
                   cout << "       +->* " << defaultCertList[k] << endl;
-              vector<Name> otherCertList = identityManager.getPublicStorage()->getAllCertificateNamesOfKey(otherKeyList[j], false);
+              vector<Name> otherCertList = identityManager.info().getAllCertificateNamesOfKey(otherKeyList[j], false);
               for(int k = 0; k < otherCertList.size(); k++)
                   cout << "       +->  " << otherCertList[k] << endl;
             }

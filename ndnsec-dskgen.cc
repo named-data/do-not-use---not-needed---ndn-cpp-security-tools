@@ -16,11 +16,8 @@
 #include <boost/program_options/parsers.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/certificate/identity-certificate.h"
-#include "ndn.cxx/security/certificate/publickey.h"
-#include "ndn.cxx/security/exception.h"
-#include "ndn.cxx/fields/signature-sha256-with-rsa.h"
+#include "ndn-cpp/security/key-chain.hpp"
+#include "ndn-cpp/security/signature/signature-sha256-with-rsa.hpp"
 
 using namespace std;
 using namespace ndn;
@@ -62,24 +59,27 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  security::IdentityManager identityManager;
+  KeyChain keyChain;
+  IdentityManager &identityManager = keyChain.identities();
 
-  Name defaultCertName = identityManager.getDefaultCertificateNameByIdentity(identityName);
+  Name defaultCertName = identityManager.getDefaultCertificateNameForIdentity(identityName);
   bool isDefaultDsk = false;
-  if(defaultCertName.get(-3).toUri().substr(0,4) == string("dsk-"))
+  if(defaultCertName.get(-3).toEscapedString().substr(0,4) == string("dsk-"))
     isDefaultDsk = true;
   
   Name signingCertName;
-  Ptr<security::IdentityCertificate> kskCert = NULL;
+  ptr_lib::shared_ptr<IdentityCertificate> kskCert;
   if(isDefaultDsk)
     {
-      Ptr<security::IdentityCertificate> dskCert = identityManager.getCertificate(defaultCertName);
-      Ptr<const signature::Sha256WithRsa> sha256sig = DynamicCast<const signature::Sha256WithRsa> (dskCert->getSignature());
-      const Name & keyLocatorName = sha256sig->getKeyLocator().getKeyName();
-      Name kskName = security::IdentityCertificate::certificateNameToPublicKeyName(keyLocatorName);
-      Name kskCertName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(kskName);
+      ptr_lib::shared_ptr<IdentityCertificate> dskCert = identityManager.getCertificate(defaultCertName);
+      SignatureSha256WithRsa sha256sig(dskCert->getSignature());
+      
+      Name keyLocatorName = sha256sig.getKeyLocator().getName(); // will throw exception if keylocator is absent or it is not a name
+
+      Name kskName = IdentityCertificate::certificateNameToPublicKeyName(keyLocatorName);
+      Name kskCertName = identityManager.info().getDefaultCertificateNameForKey(kskName);
       signingCertName = kskCertName;
-      kskCert = identityManager.getCertificate(kskCertName);
+      kskCert = identityManager.info().getCertificate(kskCertName);
     }
   else
     {
@@ -123,17 +123,15 @@ int main(int argc, char** argv)
   Name certName = newKeyName.getPrefix(newKeyName.size()-1);
   certName.append("KEY").append(newKeyName.get(-1)).append("ID-CERT").appendVersion ();
 
-  Ptr<security::IdentityCertificate> certificate = Ptr<security::IdentityCertificate>::Create();
+  ptr_lib::shared_ptr<IdentityCertificate> certificate = ptr_lib::make_shared<IdentityCertificate>();
   certificate->setName(certName);
   certificate->setNotBefore(kskCert->getNotBefore());
   certificate->setNotAfter(kskCert->getNotAfter());
 
-  Ptr<Blob> keyBlob = identityManager.getPublicStorage()->getKey(newKeyName);
-  Ptr<security::Publickey> publickey = security::Publickey::fromDER(keyBlob);
-  certificate->setPublicKeyInfo(*publickey);
+  certificate->setPublicKeyInfo(*identityManager.info().getKey(newKeyName));
 
-  const vector<security::CertificateSubDescrypt>& subList = kskCert->getSubjectDescriptionList();
-  vector<security::CertificateSubDescrypt>::const_iterator it = subList.begin();
+  const vector<CertificateSubjectDescription>& subList = kskCert->getSubjectDescriptionList();
+  vector<CertificateSubjectDescription>::const_iterator it = subList.begin();
   for(; it != subList.end(); it++)
       certificate->addSubjectDescription(*it);
 
@@ -141,7 +139,7 @@ int main(int argc, char** argv)
 
   identityManager.signByCertificate(*certificate, signingCertName);
 
-  identityManager.addCertificateAsIdentityDefault(certificate);
+  identityManager.addCertificateAsIdentityDefault(*certificate);
 
   return 0;
 }

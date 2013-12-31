@@ -17,7 +17,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
       quiet = true;
     }
   
-  security::IdentityManager identityManager;
+  KeyChain keyChain;
   bool ok = false;
 
   if(vm.count("key"))
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
       Name keyNdnName(keyName);
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForKey(keyNdnName);
+	  cout << keyChain.identities().info().getDefaultCertificateNameForKey(keyNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
@@ -88,13 +88,13 @@ int main(int argc, char** argv)
 
       if(getDefaultKey)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName);
+	  cout << keyChain.identities().info().getDefaultKeyNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName);
+	  cout << keyChain.identities().info().getDefaultCertificateNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     }
   else
     {
-      Name idNdnName = identityManager.getDefaultIdentity();
+      Name idNdnName = keyChain.identities().info().getDefaultIdentity();
       if(getDefaultId)
 	{
 	  cout << idNdnName;
@@ -111,13 +111,13 @@ int main(int argc, char** argv)
 	}
       if(getDefaultKey)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultKeyNameForIdentity(idNdnName);
+	  cout << keyChain.identities().info().getDefaultKeyNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << identityManager.getPublicStorage()->getDefaultCertificateNameForIdentity(idNdnName);
+	  cout << keyChain.identities().info().getDefaultCertificateNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}

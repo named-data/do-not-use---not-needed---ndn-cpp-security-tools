@@ -17,7 +17,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
@@ -52,7 +52,8 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  security::IdentityManager identityManager;
+  KeyChain keyChain;
+  IdentityManager &identityManager = keyChain.identities();
 
   if (vm.count("default_key"))
     {
@@ -68,22 +69,22 @@ int main(int argc, char** argv)
   if (setDefaultId)
     {
       Name idName(name);
-      identityManager.getPublicStorage()->setDefaultIdentity(idName);
+      identityManager.info().setDefaultIdentity(idName);
       return 0;
     }
   if (setDefaultKey)
     {
       Name keyName(name);
-      identityManager.getPublicStorage()->setDefaultKeyNameForIdentity(keyName);
+      identityManager.info().setDefaultKeyNameForIdentity(keyName);
       return 0;
     }
   
   if (setDefaultCert)
     {
       Name certName(name);
-      Ptr<security::IdentityCertificate> identityCertificate = identityManager.getCertificate(certName);
+      ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = identityManager.getCertificate(certName);
       Name keyName = identityCertificate->getPublicKeyName();
-      identityManager.getPublicStorage()->setDefaultCertificateNameForKey (keyName, certName);
+      identityManager.info().setDefaultCertificateNameForKey (keyName, certName);
       return 0;
     }
 }

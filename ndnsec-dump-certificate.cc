@@ -16,18 +16,17 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
-#include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/certificate/identity-certificate.h"
-#include "ndn.cxx/security/certificate/certificate-subdescrpt.h"
-#include "ndn.cxx/security/exception.h"
+#include <cryptopp/base64.h>
+#include <cryptopp/files.h>
+
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-Ptr<security::IdentityCertificate>
+ptr_lib::shared_ptr<IdentityCertificate>
 getIdentityCertificate(const string& fileName)
 {
   istream* ifs;
@@ -36,15 +35,12 @@ getIdentityCertificate(const string& fileName)
   else
     ifs = new ifstream(fileName.c_str());
 
-  string str((istreambuf_iterator<char>(*ifs)),
-             istreambuf_iterator<char>());
-
   string decoded;
-  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
-                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-  Ptr<Data> data = Data::decodeFromWire(blob);
-  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  CryptoPP::FileSource ss2(*ifs, true,
+                           new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+
+  ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = ptr_lib::make_shared<IdentityCertificate>();
+  identityCertificate->wireDecode(Block(decoded.c_str(), decoded.size()));
 
   return identityCertificate;
 }
@@ -135,24 +131,25 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  security::IdentityManager identityManager;
-  Ptr<security::IdentityCertificate> certificate;
+  KeyChain keyChain;
+  IdentityManager &identityManager = keyChain.identities();
+  ptr_lib::shared_ptr<IdentityCertificate> certificate;
 
   try{
     if(isIdentityName || isKeyName || isCertName)
       {
         if(isIdentityName)
           {
-            Name certName = identityManager.getDefaultCertificateNameByIdentity(name);
-            certificate = identityManager.getCertificate(certName);
+            Name certName = identityManager.info().getDefaultCertificateNameForIdentity(name);
+            certificate = identityManager.info().getCertificate(certName);
           }
         else if(isKeyName)
           {
-            Name certName = identityManager.getPublicStorage()->getDefaultCertificateNameForKey(name);
-            certificate = identityManager.getCertificate(certName);
+            Name certName = identityManager.info().getDefaultCertificateNameForKey(name);
+            certificate = identityManager.info().getCertificate(certName);
           }
         else
-          certificate = identityManager.getCertificate(name);
+          certificate = identityManager.info().getCertificate(name);
  
         if(NULL == certificate)
           {
@@ -172,33 +169,31 @@ int main(int argc, char** argv)
 
     if(isPretty)
       {
-        cout << "Certificate name: " << endl;
-        cout << "  " << certificate->getName() << endl;
-        cout << "Validity: " << endl;
-        cout << "  NotBefore: " << boost::posix_time::to_simple_string(certificate->getNotBefore()) << endl;
-        cout << "  NotAfter: " << boost::posix_time::to_simple_string(certificate->getNotAfter()) << endl;
-        cout << "Subject Description: " << endl;
-        const vector<security::CertificateSubDescrypt>& SubDescriptionList = certificate->getSubjectDescriptionList();
-        vector<security::CertificateSubDescrypt>::const_iterator it = SubDescriptionList.begin();
-        for(; it != SubDescriptionList.end(); it++)
-          cout << "  " << it->getOidStr() << ": " << it->getValue() << endl;
-        cout << "Public key bits: " << endl;
-        const Blob& keyBlob = certificate->getPublicKeyInfo().getKeyBlob();
-        string encoded;
-        CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(keyBlob.buf()), keyBlob.size(), true,
-                                  new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-        cout << encoded;        
+        cout << *certificate << endl;
+        // cout << "Certificate name: " << endl;
+        // cout << "  " << certificate->getName() << endl;
+        // cout << "Validity: " << endl;
+        // cout << "  NotBefore: " << boost::posix_time::to_simple_string(certificate->getNotBefore()) << endl;
+        // cout << "  NotAfter: " << boost::posix_time::to_simple_string(certificate->getNotAfter()) << endl;
+        // cout << "Subject Description: " << endl;
+        // const vector<CertificateSubjectDescription>& SubDescriptionList = certificate->getSubjectDescriptionList();
+        // vector<CertificateSubjectDescription>::const_iterator it = SubDescriptionList.begin();
+        // for(; it != SubDescriptionList.end(); it++)
+        //   cout << "  " << it->getOidStr() << ": " << it->getValue() << endl;
+        // cout << "Public key bits: " << endl;
+        // const Blob& keyBlob = certificate->getPublicKeyInfo().getKeyBlob();
+        // string encoded;
+        // CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(keyBlob.buf()), keyBlob.size(), true,
+        //                           new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
+        // cout << encoded;        
       }
     else
       {
-        Ptr<Blob> certBlob = certificate->encodeToWire();
-        
         if(isStdOut)
           {
-            string encoded;
-            CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(certBlob->buf()), certBlob->size(), true,
-                                      new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-            cout << encoded;
+            CryptoPP::StringSource ss(certificate->wireEncode().wire(), certificate->wireEncode().size(),
+                                      true,
+                                      new CryptoPP::Base64Encoder(new CryptoPP::FileSink(cout), true, 64));
             return 0;
           }
         if(isRepoOut)
@@ -212,9 +207,7 @@ int main(int argc, char** argv)
                 cerr << "fail to open the stream!" << endl;
                 return 1;
               }
-            string encoded(certBlob->buf(), certBlob->size());
-            request_stream << encoded;
-            request_stream.flush();
+            request_stream.write(reinterpret_cast<const char*>(certificate->wireEncode().wire()), certificate->wireEncode().size());
             return 0;
           }
       }

@@ -26,7 +26,8 @@ def configure(conf):
     else:
         conf.add_supported_cxxflags (cxxflags = ['-O3', '-g', '-Wno-tautological-compare'])
 
-    conf.check_cfg(package='libndn.cxx', args=['--cflags', '--libs'], uselib_store='ndn.cxx', mandatory=True)
+    # conf.check_cfg(package='libndn-cpp', args=['--cflags', '--libs'], uselib_store='ndn-cpp', mandatory=True)
+    conf.check_cxx(lib='ndn-cpp-dev', uselib_store='ndn-cpp', mandatory=True)
 
     conf.check_cryptopp(path=conf.options.cryptopp_dir)
     
@@ -44,7 +45,7 @@ def build (bld):
             target = name,
             features = ['cxx'],
             source = [app],
-            use = 'ndn.cxx CRYPTOPP BOOST BOOST_SYSTEM BOOST_PROGRAM_OPTIONS PTHREAD',
+            use = 'ndn-cpp CRYPTOPP BOOST BOOST_SYSTEM BOOST_PROGRAM_OPTIONS PTHREAD',
             includes = ".",
             )
 

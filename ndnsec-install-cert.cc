@@ -16,15 +16,17 @@
 #include <boost/program_options/parsers.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio.hpp>
-#include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
+#include <cryptopp/base64.h>
+#include <cryptopp/files.h>
+
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-Ptr<security::IdentityCertificate>
+ptr_lib::shared_ptr<IdentityCertificate>
 getCertificate(const string& fileName)
 {
   istream* ifs;
@@ -33,15 +35,12 @@ getCertificate(const string& fileName)
   else
     ifs = new ifstream(fileName.c_str());
 
-  string str((istreambuf_iterator<char>(*ifs)),
-             istreambuf_iterator<char>());
-
   string decoded;
-  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
-                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-  Ptr<Data> data = Data::decodeFromWire(blob);
-  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  CryptoPP::FileSource ss2(*ifs, true,
+                           new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+
+  ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = ptr_lib::make_shared<IdentityCertificate>();
+  identityCertificate->wireDecode(Block(decoded.c_str(), decoded.size()));
 
   return identityCertificate;
 }
@@ -65,7 +64,7 @@ private:
   std::string m_reason;
 };
 
-Ptr<security::IdentityCertificate>
+ptr_lib::shared_ptr<IdentityCertificate>
 getCertificateHttp(const std::string &host, const std::string &port, const std::string &path)
 {
   using namespace boost::asio::ip;
@@ -109,15 +108,13 @@ getCertificateHttp(const std::string &host, const std::string &port, const std::
   std::string header;
   while (std::getline(request_stream, header) && header != "\r") ;
 
-  string str((istreambuf_iterator<char>(request_stream)),
-             istreambuf_iterator<char>());
 
   string decoded;
-  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
-                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-  Ptr<Data> data = Data::decodeFromWire(blob);
-  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  CryptoPP::FileSource ss2(request_stream, true,
+                           new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+
+  ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = ptr_lib::make_shared<IdentityCertificate>();
+  identityCertificate->wireDecode(Block(decoded.c_str(), decoded.size()));
 
   return identityCertificate;
 }
@@ -187,7 +184,7 @@ int main(int argc, char** argv)
 
   try
     {
-      Ptr<security::IdentityCertificate> cert;
+      ptr_lib::shared_ptr<IdentityCertificate> cert;
 
       if(certFileName.find("http://") == 0)
         {
@@ -223,26 +220,27 @@ int main(int argc, char** argv)
           cert = getCertificate(certFileName);
         }
 
-      security::IdentityManager identityManager;
+      KeyChain keyChain;
+      IdentityManager &identityManager = keyChain.identities();
 
       if(systemDefault)
         {
-          identityManager.addCertificateAsIdentityDefault(cert);
+          identityManager.addCertificateAsIdentityDefault(*cert);
           Name keyName = cert->getPublicKeyName();
           Name identity = keyName.getSubName(0, keyName.size()-1);
-          identityManager.getPublicStorage()->setDefaultIdentity(identity);
+          identityManager.info().setDefaultIdentity(identity);
         }
       else if(identityDefault)
         {
-          identityManager.addCertificateAsIdentityDefault(cert);
+          identityManager.addCertificateAsIdentityDefault(*cert);
         }
       else if(keyDefault)
         {
-          identityManager.addCertificateAsDefault(cert);
+          identityManager.addCertificateAsDefault(*cert);
         }
       else
         {
-          identityManager.addCertificate(cert);
+          identityManager.addCertificate(*cert);
         }
 
       cout << "OK: certificate with name [" << cert->getName().toUri() << "] has been successfully installed" << endl;

@@ -18,13 +18,9 @@
 #include <boost/regex.hpp>
 #include <boost/exception/all.hpp>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/exception.h"
-#include "ndn.cxx/fields/signature-sha256-with-rsa.h"
+#include "ndn-cpp/security/key-chain.hpp"
+#include "ndn-cpp/security/signature/signature-sha256-with-rsa.hpp"
 
-#include "ndn.cxx/helpers/der/der.h"
-#include "ndn.cxx/helpers/der/visitor/print-visitor.h"
-#include "ndn.cxx/helpers/der/visitor/publickey-visitor.h"
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
@@ -69,23 +65,23 @@ int main(int argc, char** argv)
 
   if (command == "sign") // the content to be signed from stdin
     {
-      security::IdentityManager identityManager;
+      KeyChain keyChain;
+      IdentityManager &identityManager = keyChain.identities();
 
       try
         {
+          Buffer dataToSign((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
+          
+          Signature signature = identityManager.signByCertificate(dataToSign.buf(), dataToSign.size(),
+                                                                  identityManager.getDefaultCertificateName());
 
-          Blob dataToSign((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
-          Ptr<Signature> signature = identityManager.signByCertificate(dataToSign, identityManager.getDefaultCertificateName());
-          Ptr<signature::Sha256WithRsa> realSig = DynamicCast<signature::Sha256WithRsa> (signature);
-
-          if (!realSig)
+          if (signature.getValue().value_size() == 0)
             {
               cerr << "Error signing with default key" << endl;
               return -1;
             }
 
-          std::copy(realSig->getSignatureBits().begin(), realSig->getSignatureBits().end(),
-                    (ostreambuf_iterator<char>(cout)));
+          cout.write(reinterpret_cast<const char*>(signature.getValue().wire()), signature.getValue().size());
         }
       catch (boost::exception &e)
         {

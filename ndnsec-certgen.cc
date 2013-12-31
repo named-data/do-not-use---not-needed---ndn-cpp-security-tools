@@ -17,21 +17,27 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/regex.hpp>
 #include <cryptopp/base64.h>
+#include <cryptopp/files.h>
 
 #include <boost/tokenizer.hpp>
 using boost::tokenizer;
 using boost::escaped_list_separator;
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/certificate/identity-certificate.h"
-#include "ndn.cxx/security/exception.h"
+#include "ndn-cpp/security/key-chain.hpp"
 
+namespace ndn {
+typedef boost::posix_time::ptime Time;
+typedef boost::posix_time::time_duration TimeInterval;
+namespace time {
+const Time UNIX_EPOCH_TIME = Time (boost::gregorian::date (1970, boost::gregorian::Jan, 1));
+} // namespace time
+} // namespace ndn
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-Ptr<security::IdentityCertificate>
+ptr_lib::shared_ptr<IdentityCertificate>
 getSelfSignedCertificate(const string& fileName)
 {
   istream* ifs;
@@ -40,15 +46,12 @@ getSelfSignedCertificate(const string& fileName)
   else
     ifs = new ifstream(fileName.c_str());
 
-  string str((istreambuf_iterator<char>(*ifs)),
-             istreambuf_iterator<char>());
-
   string decoded;
-  CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
-                             new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-  Ptr<Data> data = Data::decodeFromWire(blob);
-  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  CryptoPP::FileSource ss2(*ifs, true,
+                           new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+
+  ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = ptr_lib::make_shared<IdentityCertificate>();
+  identityCertificate->wireDecode(Block(ptr_lib::make_shared<Buffer>(decoded.c_str(), decoded.size())));
 
   return identityCertificate;
 }
@@ -107,7 +110,7 @@ int main(int argc, char** argv)
       nack = true;
     }
 
-  vector<security::CertificateSubDescrypt> otherSubDescrypt;
+  vector<CertificateSubjectDescription> otherSubDescrypt;
   tokenizer<escaped_list_separator<char> > subInfoItems(subInfo, escaped_list_separator<char> ("\\", " \t", "'\""));
 
   tokenizer<escaped_list_separator<char> >::iterator it = subInfoItems.begin();
@@ -126,7 +129,7 @@ int main(int argc, char** argv)
 
           string value = *it;
 
-          otherSubDescrypt.push_back (security::CertificateSubDescrypt(oid, value));
+          otherSubDescrypt.push_back (CertificateSubjectDescription(oid, value));
 
           it++;
         }
@@ -137,7 +140,6 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  TimeInterval ti = time::NowUnixTimestamp();
   Time notBefore;
   Time notAfter;
   try{
@@ -175,7 +177,7 @@ int main(int argc, char** argv)
       return 1;
     }
 
-  Ptr<security::IdentityCertificate> selfSignedCertificate;
+  ptr_lib::shared_ptr<IdentityCertificate> selfSignedCertificate;
   try
     {
       selfSignedCertificate = getSelfSignedCertificate(reqFile);
@@ -219,7 +221,7 @@ int main(int argc, char** argv)
       certName.append("ID-CERT").appendVersion ();
     }
 
-  Ptr<Blob> dataBlob;
+  Block wire;
 
   if (!nack)
     {
@@ -231,28 +233,29 @@ int main(int argc, char** argv)
 
       try
         {
-          security::CertificateSubDescrypt subDescryptName("2.5.4.41", sName);
-          security::IdentityCertificate certificate;
+          CertificateSubjectDescription subDescryptName("2.5.4.41", sName);
+          IdentityCertificate certificate;
           certificate.setName(certName);
-          certificate.setNotBefore(notBefore);
-          certificate.setNotAfter(notAfter);
+          certificate.setNotBefore((notBefore-time::UNIX_EPOCH_TIME).total_milliseconds());
+          certificate.setNotAfter((notAfter-time::UNIX_EPOCH_TIME).total_milliseconds());
           certificate.setPublicKeyInfo(selfSignedCertificate->getPublicKeyInfo());
           certificate.addSubjectDescription(subDescryptName);
           for(int i = 0; i < otherSubDescrypt.size(); i++)
             certificate.addSubjectDescription(otherSubDescrypt[i]);
           certificate.encode();
 
-          security::IdentityManager identityManager;
+          KeyChain keyChain;
+          IdentityManager &identityManager = keyChain.identities();
 
           if(isSelfSigned)
             identityManager.selfSign(certificate);
           else
             {
-              Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+              Name signingCertificateName = identityManager.info().getDefaultCertificateNameForIdentity(Name(signId));
               
               identityManager.signByCertificate(certificate, signingCertificateName);
             }
-          dataBlob = certificate.encodeToWire();
+          wire = certificate.wireEncode();
         }
       catch(exception &e)
         {
@@ -263,21 +266,20 @@ int main(int argc, char** argv)
   else
     {
       Data revocationCert;
-      revocationCert.setContent(Content("", 0, Content::NACK));
+      // revocationCert.setContent(void*, 0); // empty content
       revocationCert.setName(certName);
 
-      security::IdentityManager identityManager;
-      Name signingCertificateName = identityManager.getDefaultCertificateNameByIdentity(Name(signId));
+      KeyChain keyChain;
+      IdentityManager &identityManager = keyChain.identities();
+      Name signingCertificateName = identityManager.info().getDefaultCertificateNameForIdentity(Name(signId));
 
       identityManager.signByCertificate (revocationCert, signingCertificateName);
-      dataBlob = revocationCert.encodeToWire();
+      wire = revocationCert.wireEncode();
     }
 
-  string encoded;
-  CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(dataBlob->buf()), dataBlob->size(),
+  CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(wire.wire()), wire.size(),
                             true,
-                            new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));
-  cout << encoded;
+                            new CryptoPP::Base64Encoder(new CryptoPP::FileSink(cout), true, 64));
 
   return 0;
 }

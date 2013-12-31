@@ -14,58 +14,59 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <cryptopp/base64.h>
 
-#include "ndn.cxx/security/identity/identity-manager.h"
-#include "ndn.cxx/security/policy/policy-manager.h"
-#include "ndn.cxx/security/exception.h"
+#include <cryptopp/base64.h>
+#include <cryptopp/files.h>
+
+#include "ndn-cpp/security/identity/identity-manager.hpp"
+#include "ndn-cpp/security/policy/policy-manager.hpp"
 
 using namespace std;
 using namespace ndn;
 namespace po = boost::program_options;
 
-Ptr<security::IdentityCertificate> 
+ptr_lib::shared_ptr<IdentityCertificate> 
 getCertificate(const string& certString)
 {
   string decoded;
   CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(certString.c_str()), certString.size(), true,
                              new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-  Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-  Ptr<Data> data = Data::decodeFromWire(blob);
-  Ptr<security::IdentityCertificate> identityCertificate = Ptr<security::IdentityCertificate>(new security::IdentityCertificate(*data));
+  
+  Data data;
+  data.wireDecode(Block(ptr_lib::make_shared<Buffer>(decoded.begin(), decoded.end())));
+  
+  ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = ptr_lib::make_shared<IdentityCertificate>(boost::cref(data));
   
   return identityCertificate;
 }
 
 bool
-verifySignature(Ptr<security::IdentityCertificate> certificate, bool isDataPacket)
+verifySignature(ptr_lib::shared_ptr<IdentityCertificate> certificate, bool isDataPacket)
 {
-  
-
-  if(isDataPacket)
-    {
-      string str((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
-
-      string decoded;
-      CryptoPP::StringSource ss2(reinterpret_cast<const unsigned char *>(str.c_str()), str.size(), true,
-				 new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
-      Ptr<Blob> blob = Ptr<Blob>(new Blob(decoded.c_str(), decoded.size()));
-      Ptr<Data> data = Data::decodeFromWire(blob);
-      return security::PolicyManager::verifySignature(*data, certificate->getPublicKeyInfo());
-    }
-  else
-    {
-      // The first two bytes indicates the boundary of the of the signed data and signature.
-      // for example, if the size of the signed data is 300, then the boundary should be 300, so the first two bytes should be: 0x01 0x2C
-      Ptr<Blob> input = Ptr<Blob>(new Blob ((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>()));
-      size_t size = input->at(0);
-      size = ((size << 8) + input->at(1));
+  throw std::runtime_error("Not supported yet");
+  // if(isDataPacket)
+  //   {
+  //     string decoded;
+  //     CryptoPP::FileSource ss2(cin, true,
+  //                              new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
       
-      Blob signedBlob(input->buf()+2, size);
-      Blob signature(input->buf()+2+size, input->size()-2-size);
+  //     Data data;
+  //     data.wireDecode(ptr_lib::make_shared<Buffer>(decoded.c_str(), decoded.size()));
+  //     return PolicyManager::verifySignature(data, certificate->getPublicKeyInfo());
+  //   }
+  // else
+  //   {
+  //     // The first two bytes indicates the boundary of the of the signed data and signature.
+  //     // for example, if the size of the signed data is 300, then the boundary should be 300, so the first two bytes should be: 0x01 0x2C
+  //     ptr_lib::shared_ptr<Blob> input = ptr_lib::shared_ptr<Blob>(new Blob ((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>()));
+  //     size_t size = input->at(0);
+  //     size = ((size << 8) + input->at(1));
+      
+  //     Blob signedBlob(input->buf()+2, size);
+  //     Blob signature(input->buf()+2+size, input->size()-2-size);
 
-      return security::PolicyManager::verifySignature(signedBlob, signature, certificate->getPublicKeyInfo());
-    }
+  //     return PolicyManager::verifySignature(signedBlob, signature, certificate->getPublicKeyInfo());
+  //   }
 }
 
 int main(int argc, char** argv)	
@@ -106,13 +107,13 @@ int main(int argc, char** argv)
 
   try
     {
-      Ptr<security::IdentityCertificate> certificate = getCertificate(certString);
+      ptr_lib::shared_ptr<IdentityCertificate> certificate = getCertificate(certString);
       bool res = verifySignature(certificate, isDataPacket);
       return (res ? 0 : 1);
     }
-  catch(...)
+  catch(const std::exception &e)
     {
-      std::cerr << "ERROR: invalid input or certificate" << std::endl;
+      std::cerr << "ERROR: " << e.what() << std::endl;
       return 1;
     }
 }
