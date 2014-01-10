@@ -8,6 +8,8 @@
  * Author: Yingdi Yu <yingdi@cs.ucla.edu>
  */
 
+#ifdef DISABLED
+
 #include <iostream>
 #include <fstream>
 
@@ -116,3 +118,10 @@ int main(int argc, char** argv)
   }
   return 0;
 }
+
+#else
+int main()
+{
+  return 0;
+}
+#endif
