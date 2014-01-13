@@ -18,8 +18,7 @@
 #include <cryptopp/base64.h>
 #include <cryptopp/files.h>
 
-#include "ndn-cpp/security/identity/identity-manager.hpp"
-#include "ndn-cpp/security/policy/policy-manager.hpp"
+#include "ndn-cpp/security/key-chain.hpp"
 
 using namespace std;
 using namespace ndn;

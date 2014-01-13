@@ -221,26 +221,25 @@ int main(int argc, char** argv)
         }
 
       KeyChain keyChain;
-      IdentityManager &identityManager = keyChain.identities();
 
       if(systemDefault)
         {
-          identityManager.addCertificateAsIdentityDefault(*cert);
+          keyChain.addCertificateAsIdentityDefault(*cert);
           Name keyName = cert->getPublicKeyName();
           Name identity = keyName.getSubName(0, keyName.size()-1);
-          identityManager.info().setDefaultIdentity(identity);
+          keyChain.setDefaultIdentity(identity);
         }
       else if(identityDefault)
         {
-          identityManager.addCertificateAsIdentityDefault(*cert);
+          keyChain.addCertificateAsIdentityDefault(*cert);
         }
       else if(keyDefault)
         {
-          identityManager.addCertificateAsDefault(*cert);
+          keyChain.addCertificateAsKeyDefault(*cert);
         }
       else
         {
-          identityManager.addCertificate(*cert);
+          keyChain.addCertificate(*cert);
         }
 
       cout << "OK: certificate with name [" << cert->getName().toUri() << "] has been successfully installed" << endl;

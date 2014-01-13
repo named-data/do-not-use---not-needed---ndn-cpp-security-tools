@@ -245,15 +245,14 @@ int main(int argc, char** argv)
           certificate.encode();
 
           KeyChain keyChain;
-          IdentityManager &identityManager = keyChain.identities();
 
           if(isSelfSigned)
-            identityManager.selfSign(certificate);
+            keyChain.selfSign(certificate);
           else
             {
-              Name signingCertificateName = identityManager.info().getDefaultCertificateNameForIdentity(Name(signId));
+              Name signingCertificateName = keyChain.getDefaultCertificateNameForIdentity(Name(signId));
               
-              identityManager.signByCertificate(certificate, signingCertificateName);
+              keyChain.sign(certificate, signingCertificateName);
             }
           wire = certificate.wireEncode();
         }
@@ -270,10 +269,9 @@ int main(int argc, char** argv)
       revocationCert.setName(certName);
 
       KeyChain keyChain;
-      IdentityManager &identityManager = keyChain.identities();
-      Name signingCertificateName = identityManager.info().getDefaultCertificateNameForIdentity(Name(signId));
+      Name signingCertificateName = keyChain.getDefaultCertificateNameForIdentity(Name(signId));
 
-      identityManager.signByCertificate (revocationCert, signingCertificateName);
+      keyChain.sign (revocationCert, signingCertificateName);
       wire = revocationCert.wireEncode();
     }
 

@@ -53,7 +53,6 @@ int main(int argc, char** argv)
     }
 
   KeyChain keyChain;
-  IdentityManager &identityManager = keyChain.identities();
 
   if (vm.count("default_key"))
     {
@@ -69,22 +68,19 @@ int main(int argc, char** argv)
   if (setDefaultId)
     {
       Name idName(name);
-      identityManager.info().setDefaultIdentity(idName);
+      keyChain.setDefaultIdentity(idName);
       return 0;
     }
   if (setDefaultKey)
     {
       Name keyName(name);
-      identityManager.info().setDefaultKeyNameForIdentity(keyName);
+      keyChain.setDefaultKeyNameForIdentity(keyName);
       return 0;
     }
   
   if (setDefaultCert)
     {
-      Name certName(name);
-      ptr_lib::shared_ptr<IdentityCertificate> identityCertificate = identityManager.getCertificate(certName);
-      Name keyName = identityCertificate->getPublicKeyName();
-      identityManager.info().setDefaultCertificateNameForKey (keyName, certName);
+      keyChain.setDefaultCertificateNameForKey(name);
       return 0;
     }
 }

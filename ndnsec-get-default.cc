@@ -76,7 +76,7 @@ int main(int argc, char** argv)
       Name keyNdnName(keyName);
       if(getDefaultCert)
 	{
-	  cout << keyChain.identities().info().getDefaultCertificateNameForKey(keyNdnName);
+	  cout << keyChain.getDefaultCertificateNameForKey(keyNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
@@ -88,13 +88,13 @@ int main(int argc, char** argv)
 
       if(getDefaultKey)
 	{
-	  cout << keyChain.identities().info().getDefaultKeyNameForIdentity(idNdnName);
+	  cout << keyChain.getDefaultKeyNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << keyChain.identities().info().getDefaultCertificateNameForIdentity(idNdnName);
+	  cout << keyChain.getDefaultCertificateNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     }
   else
     {
-      Name idNdnName = keyChain.identities().info().getDefaultIdentity();
+      Name idNdnName = keyChain.getDefaultIdentity();
       if(getDefaultId)
 	{
 	  cout << idNdnName;
@@ -111,13 +111,13 @@ int main(int argc, char** argv)
 	}
       if(getDefaultKey)
 	{
-	  cout << keyChain.identities().info().getDefaultKeyNameForIdentity(idNdnName);
+	  cout << keyChain.getDefaultKeyNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}
       if(getDefaultCert)
 	{
-	  cout << keyChain.identities().info().getDefaultCertificateNameForIdentity(idNdnName);
+	  cout << keyChain.getDefaultCertificateNameForIdentity(idNdnName);
           if (!quiet) cout << endl;
 	  return 0;
 	}

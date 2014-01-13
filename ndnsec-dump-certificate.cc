@@ -132,7 +132,6 @@ int main(int argc, char** argv)
     }
 
   KeyChain keyChain;
-  IdentityManager &identityManager = keyChain.identities();
   ptr_lib::shared_ptr<IdentityCertificate> certificate;
 
   try{
@@ -140,16 +139,16 @@ int main(int argc, char** argv)
       {
         if(isIdentityName)
           {
-            Name certName = identityManager.info().getDefaultCertificateNameForIdentity(name);
-            certificate = identityManager.info().getCertificate(certName);
+            Name certName = keyChain.getDefaultCertificateNameForIdentity(name);
+            certificate = keyChain.getCertificate(certName);
           }
         else if(isKeyName)
           {
-            Name certName = identityManager.info().getDefaultCertificateNameForKey(name);
-            certificate = identityManager.info().getCertificate(certName);
+            Name certName = keyChain.getDefaultCertificateNameForKey(name);
+            certificate = keyChain.getCertificate(certName);
           }
         else
-          certificate = identityManager.info().getCertificate(name);
+          certificate = keyChain.getCertificate(name);
  
         if(NULL == certificate)
           {
@@ -181,7 +180,7 @@ int main(int argc, char** argv)
         // for(; it != SubDescriptionList.end(); it++)
         //   cout << "  " << it->getOidStr() << ": " << it->getValue() << endl;
         // cout << "Public key bits: " << endl;
-        // const Blob& keyBlob = certificate->getPublicKeyInfo().getKeyBlob();
+        // const Blob& keyBlob = certificate->getPublicKeygetKeyBlob();
         // string encoded;
         // CryptoPP::StringSource ss(reinterpret_cast<const unsigned char *>(keyBlob.buf()), keyBlob.size(), true,
         //                           new CryptoPP::Base64Encoder(new CryptoPP::StringSink(encoded), true, 64));

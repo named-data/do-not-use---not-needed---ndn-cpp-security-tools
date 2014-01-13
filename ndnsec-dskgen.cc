@@ -24,7 +24,7 @@ using namespace ndn;
 namespace po = boost::program_options;
 
 
-int main(int argc, char** argv)	
+int main(int argc, char** argv)
 {
   string identityName;
   char keyType = 'r';
@@ -41,12 +41,12 @@ int main(int argc, char** argv)
 
   po::positional_options_description p;
   p.add("identity_name", 1);
-  
+
   po::variables_map vm;
   po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
   po::notify(vm);
 
-  if (vm.count("help")) 
+  if (vm.count("help"))
     {
       cerr << desc << endl;
       return 1;
@@ -60,35 +60,34 @@ int main(int argc, char** argv)
     }
 
   KeyChain keyChain;
-  IdentityManager &identityManager = keyChain.identities();
 
-  Name defaultCertName = identityManager.getDefaultCertificateNameForIdentity(identityName);
+  Name defaultCertName = keyChain.getDefaultCertificateNameForIdentity(identityName);
   bool isDefaultDsk = false;
   if(defaultCertName.get(-3).toEscapedString().substr(0,4) == string("dsk-"))
     isDefaultDsk = true;
-  
+
   Name signingCertName;
   ptr_lib::shared_ptr<IdentityCertificate> kskCert;
   if(isDefaultDsk)
     {
-      ptr_lib::shared_ptr<IdentityCertificate> dskCert = identityManager.getCertificate(defaultCertName);
+      ptr_lib::shared_ptr<IdentityCertificate> dskCert = keyChain.getCertificate(defaultCertName);
       SignatureSha256WithRsa sha256sig(dskCert->getSignature());
-      
+
       Name keyLocatorName = sha256sig.getKeyLocator().getName(); // will throw exception if keylocator is absent or it is not a name
 
       Name kskName = IdentityCertificate::certificateNameToPublicKeyName(keyLocatorName);
-      Name kskCertName = identityManager.info().getDefaultCertificateNameForKey(kskName);
+      Name kskCertName = keyChain.getDefaultCertificateNameForKey(kskName);
       signingCertName = kskCertName;
-      kskCert = identityManager.info().getCertificate(kskCertName);
+      kskCert = keyChain.getCertificate(kskCertName);
     }
   else
     {
       signingCertName = defaultCertName;
-      kskCert = identityManager.getCertificate(defaultCertName);
+      kskCert = keyChain.getCertificate(defaultCertName);
     }
 
   Name newKeyName;
-  // if (vm.count("type")) 
+  // if (vm.count("type"))
   if (true)
     {
       switch(keyType)
@@ -97,7 +96,7 @@ int main(int argc, char** argv)
         {
           try
             {
-              newKeyName = identityManager.generateRSAKeyPair(Name(identityName), false, keySize);            
+              newKeyName = keyChain.generateRSAKeyPair(Name(identityName), false, keySize);
 
               if(0 == newKeyName.size())
                 {
@@ -128,7 +127,7 @@ int main(int argc, char** argv)
   certificate->setNotBefore(kskCert->getNotBefore());
   certificate->setNotAfter(kskCert->getNotAfter());
 
-  certificate->setPublicKeyInfo(*identityManager.info().getKey(newKeyName));
+  certificate->setPublicKeyInfo(*keyChain.getPublicKey(newKeyName));
 
   const vector<CertificateSubjectDescription>& subList = kskCert->getSubjectDescriptionList();
   vector<CertificateSubjectDescription>::const_iterator it = subList.begin();
@@ -137,9 +136,9 @@ int main(int argc, char** argv)
 
   certificate->encode();
 
-  identityManager.signByCertificate(*certificate, signingCertName);
+  keyChain.sign(*certificate, signingCertName);
 
-  identityManager.addCertificateAsIdentityDefault(*certificate);
+  keyChain.addCertificateAsIdentityDefault(*certificate);
 
   return 0;
 }

@@ -66,14 +66,13 @@ int main(int argc, char** argv)
   if (command == "sign") // the content to be signed from stdin
     {
       KeyChain keyChain;
-      IdentityManager &identityManager = keyChain.identities();
 
       try
         {
           Buffer dataToSign((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
           
-          Signature signature = identityManager.signByCertificate(dataToSign.buf(), dataToSign.size(),
-                                                                  identityManager.getDefaultCertificateName());
+          Signature signature = keyChain.sign(dataToSign.buf(), dataToSign.size(),
+                                              keyChain.getDefaultCertificateName());
 
           if (signature.getValue().value_size() == 0)
             {

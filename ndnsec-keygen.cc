@@ -72,7 +72,6 @@ int main(int argc, char** argv)
     notDefault = true;
 
   KeyChain keyChain;
-  IdentityManager &identityManager = keyChain.identities();
 
   // if (vm.count("type")) 
   if (true)
@@ -83,20 +82,20 @@ int main(int argc, char** argv)
         {
           try
             {
-              Name keyName = identityManager.generateRSAKeyPair(Name(identityName), !dskFlag, keySize);            
+              Name keyName = keyChain.generateRSAKeyPair(Name(identityName), !dskFlag, keySize);            
 
               if(0 == keyName.size())
                 {                  
                   return 1;
                 }
 
-              identityManager.info().setDefaultKeyNameForIdentity(keyName);
+              keyChain.setDefaultKeyNameForIdentity(keyName);
             
-              ptr_lib::shared_ptr<IdentityCertificate> idcert = identityManager.selfSign(keyName);
+              ptr_lib::shared_ptr<IdentityCertificate> idcert = keyChain.selfSign(keyName);
 
               if(!notDefault)
                 {
-                  identityManager.info().setDefaultIdentity(Name(identityName));
+                  keyChain.setDefaultIdentity(Name(identityName));
                 }
               
               CryptoPP::StringSource ss(idcert->wireEncode().wire(), 

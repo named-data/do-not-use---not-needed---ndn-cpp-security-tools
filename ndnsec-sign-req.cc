@@ -68,20 +68,19 @@ int main(int argc, char** argv)
     isKeyName = true;
     
   KeyChain keyChain;
-  IdentityManager &identityManager = keyChain.identities();
 
   try{
     if(isKeyName)
       {
-        ptr_lib::shared_ptr<IdentityCertificate> selfSignCert = identityManager.selfSign(name);
+        ptr_lib::shared_ptr<IdentityCertificate> selfSignCert = keyChain.selfSign(name);
 
         CryptoPP::StringSource ss(selfSignCert->wireEncode().wire(), selfSignCert->wireEncode().size(), true,
                               new CryptoPP::Base64Encoder(new CryptoPP::FileSink(cout), true, 64));
       }
     else
       {
-        Name keyName = identityManager.getDefaultKeyNameForIdentity(name);
-        ptr_lib::shared_ptr<IdentityCertificate> selfSignCert = identityManager.selfSign(keyName);
+        Name keyName = keyChain.getDefaultKeyNameForIdentity(name);
+        ptr_lib::shared_ptr<IdentityCertificate> selfSignCert = keyChain.selfSign(keyName);
 
         CryptoPP::StringSource ss(selfSignCert->wireEncode().wire(), selfSignCert->wireEncode().size(), true,
                               new CryptoPP::Base64Encoder(new CryptoPP::FileSink(cout), true, 64));

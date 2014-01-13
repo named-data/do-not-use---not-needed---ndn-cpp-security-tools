@@ -21,13 +21,14 @@ def configure(conf):
                                                  '-Wno-unused-private-field', # only clang supports
                                                  '-fcolor-diagnostics',       # only clang supports
                                                  '-Qunused-arguments',        # only clang supports
-                                                 '-Wno-tautological-compare',    # suppress warnings from CryptoPP
+                                                 '-Wno-tautological-compare', # suppress warnings from CryptoPP
+                                                 '-Wno-unused-function',      # suppress warnings from CryptoPP
                                                  ])
     else:
-        conf.add_supported_cxxflags (cxxflags = ['-O3', '-g', '-Wno-tautological-compare'])
+        conf.add_supported_cxxflags (cxxflags = ['-O3', '-g', '-Wno-tautological-compare', '-Wno-unused-function'])
 
     # conf.check_cfg(package='libndn-cpp', args=['--cflags', '--libs'], uselib_store='ndn-cpp', mandatory=True)
-    conf.check_cxx(lib='ndn-cpp-dev', uselib_store='ndn-cpp', mandatory=True)
+    conf.check_cxx(lib='ndn-cpp', uselib_store='NDN-CPP', mandatory=True)
 
     conf.check_cryptopp(path=conf.options.cryptopp_dir)
     
@@ -45,7 +46,7 @@ def build (bld):
             target = name,
             features = ['cxx'],
             source = [app],
-            use = 'ndn-cpp CRYPTOPP BOOST BOOST_SYSTEM BOOST_PROGRAM_OPTIONS PTHREAD',
+            use = 'NDN-CPP CRYPTOPP BOOST BOOST_SYSTEM BOOST_PROGRAM_OPTIONS PTHREAD',
             includes = ".",
             )
 
