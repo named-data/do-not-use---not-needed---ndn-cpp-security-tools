@@ -20,7 +20,7 @@
 #include <cryptopp/base64.h>
 #include <cryptopp/files.h>
 
-#include "ndn-cpp/security/key-chain.hpp"
+#include <ndn-cpp-dev/security/key-chain.hpp>
 
 using namespace std;
 using namespace ndn;

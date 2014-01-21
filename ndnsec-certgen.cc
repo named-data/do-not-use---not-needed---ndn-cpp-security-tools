@@ -23,7 +23,7 @@
 using boost::tokenizer;
 using boost::escaped_list_separator;
 
-#include "ndn-cpp/security/key-chain.hpp"
+#include <ndn-cpp-dev/security/key-chain.hpp>
 
 namespace ndn {
 typedef boost::posix_time::ptime Time;

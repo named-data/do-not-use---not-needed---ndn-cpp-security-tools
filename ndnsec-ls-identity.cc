@@ -17,7 +17,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn-cpp/security/key-chain.hpp"
+#include <ndn-cpp-dev/security/key-chain.hpp>
 
 using namespace std;
 using namespace ndn;

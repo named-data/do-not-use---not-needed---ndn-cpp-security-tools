@@ -16,8 +16,8 @@
 #include <boost/program_options/parsers.hpp>
 #include <cryptopp/base64.h>
 
-#include "ndn-cpp/security/key-chain.hpp"
-#include "ndn-cpp/security/signature/signature-sha256-with-rsa.hpp"
+#include <ndn-cpp-dev/security/key-chain.hpp>
+#include <ndn-cpp-dev/security/signature-sha256-with-rsa.hpp>
 
 using namespace std;
 using namespace ndn;
