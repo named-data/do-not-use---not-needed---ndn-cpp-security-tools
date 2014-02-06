@@ -199,7 +199,9 @@ int main(int argc, char** argv)
           {
             using namespace boost::asio::ip;
             tcp::iostream request_stream;
+#if (BOOST_VERSION >= 104700)
             request_stream.expires_from_now(boost::posix_time::milliseconds(3000));
+#endif
             request_stream.connect(repoHost,repoPort);
             if(!request_stream)
               {
